@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "nuxt build",
+  "devCommand": "nuxt dev",
+  "installCommand": "npm install",
+  "framework": "nuxtjs",
+  "regions": ["gru1"]
+}
+

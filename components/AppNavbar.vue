@@ -1,0 +1,111 @@
+<template>
+  <header class="fixed top-0 left-0 right-0 z-50 glass border-b border-neutral-800/50">
+    <div class="container-app">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo -->
+        <NuxtLink to="/" class="flex items-center gap-3 group">
+          <div class="relative">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:shadow-amber-500/40 transition-all duration-300">
+              <Icon name="lucide:scissors" class="w-5 h-5 text-black" />
+            </div>
+            <div class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0a0a0a] pulse-dot" />
+          </div>
+          <div class="hidden sm:block">
+            <h1 class="font-display text-xl font-semibold text-white">
+              Barber<span class="text-gold-gradient">Plus</span>
+            </h1>
+            <p class="text-[10px] text-neutral-500 -mt-1 tracking-wider uppercase">Premium Barbershops</p>
+          </div>
+        </NuxtLink>
+
+        <!-- Location (Desktop) -->
+        <button 
+          class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-900/50 border border-neutral-800 hover:border-amber-500/30 transition-all group"
+          @click="showLocationModal = true"
+        >
+          <Icon name="lucide:map-pin" class="w-4 h-4 text-amber-500" />
+          <span class="text-sm text-neutral-300 group-hover:text-white transition-colors">
+            {{ currentLocation }}
+          </span>
+          <Icon name="lucide:chevron-down" class="w-4 h-4 text-neutral-500" />
+        </button>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-2">
+          <!-- Search (Desktop) -->
+          <button 
+            class="hidden md:flex items-center justify-center w-10 h-10 rounded-xl bg-neutral-900/50 border border-neutral-800 hover:border-amber-500/30 hover:bg-neutral-800 transition-all"
+            @click="showSearch = true"
+          >
+            <Icon name="lucide:search" class="w-5 h-5 text-neutral-400" />
+          </button>
+
+          <!-- Notifications -->
+          <button class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-neutral-900/50 border border-neutral-800 hover:border-amber-500/30 hover:bg-neutral-800 transition-all">
+            <Icon name="lucide:bell" class="w-5 h-5 text-neutral-400" />
+            <span class="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full text-[10px] font-bold text-black flex items-center justify-center">
+              3
+            </span>
+          </button>
+
+          <!-- Profile -->
+          <button class="flex items-center gap-2 p-1 rounded-xl hover:bg-neutral-800/50 transition-all">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-neutral-700 to-neutral-800 flex items-center justify-center border border-neutral-700">
+              <Icon name="lucide:user" class="w-5 h-5 text-neutral-400" />
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Modal -->
+    <UModal v-model="showSearch">
+      <div class="p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <Icon name="lucide:search" class="w-5 h-5 text-amber-500" />
+          <h3 class="text-lg font-semibold">Buscar Barbearias</h3>
+        </div>
+        <UInput 
+          v-model="searchQuery"
+          placeholder="Digite o nome da barbearia..."
+          icon="i-lucide-search"
+          size="lg"
+          autofocus
+          @keyup.enter="handleSearch"
+        />
+        <div class="mt-4 space-y-2">
+          <p class="text-xs text-neutral-500 uppercase tracking-wider">Buscas recentes</p>
+          <div class="flex flex-wrap gap-2">
+            <button 
+              v-for="recent in recentSearches" 
+              :key="recent"
+              class="px-3 py-1.5 rounded-lg bg-neutral-800 text-sm text-neutral-300 hover:bg-neutral-700 transition-colors"
+              @click="searchQuery = recent"
+            >
+              {{ recent }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </UModal>
+  </header>
+
+  <!-- Spacer -->
+  <div class="h-16" />
+</template>
+
+<script setup lang="ts">
+const showSearch = ref(false)
+const showLocationModal = ref(false)
+const searchQuery = ref('')
+const currentLocation = ref('Aracaju, SE')
+const recentSearches = ref(['Corte degradê', 'Barba', 'Barbearia Premium'])
+
+const handleSearch = () => {
+  if (searchQuery.value) {
+    navigateTo(`/buscar?q=${encodeURIComponent(searchQuery.value)}`)
+    showSearch.value = false
+  }
+}
+</script>
+
