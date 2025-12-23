@@ -30,9 +30,9 @@
   --info: #3b82f6;
 
   /* Typography */
-  --font-display: 'Playfair Display', serif;
-  --font-body: 'DM Sans', sans-serif;
-  --font-mono: 'Space Mono', monospace;
+  --font-display: 'Arial', 'Helvetica Neue', sans-serif;
+  --font-body: 'Arial', 'Helvetica Neue', sans-serif;
+  --font-mono: 'Consolas', 'Monaco', monospace;
 
   /* Spacing */
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);

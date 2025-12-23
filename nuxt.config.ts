@@ -5,18 +5,8 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/ui',
     '@nuxt/image',
-    '@vueuse/nuxt',
-    '@nuxtjs/google-fonts'
+    '@vueuse/nuxt'
   ],
-
-  googleFonts: {
-    families: {
-      'Playfair Display': [400, 500, 600, 700],
-      'DM Sans': [300, 400, 500, 600, 700],
-      'Space Mono': [400, 700]
-    },
-    display: 'swap'
-  },
 
   colorMode: {
     preference: 'dark',
