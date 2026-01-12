@@ -23,12 +23,20 @@
 
       <!-- Barbershop Selector -->
       <div class="p-4 border-b border-neutral-800">
-        <button class="w-full flex items-center gap-3 p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 transition-colors">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-            <span class="text-black font-bold text-sm">BP</span>
+        <button 
+          class="w-full flex items-center gap-3 p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
+          @click="showBarbershopSelector = !showBarbershopSelector"
+        >
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center overflow-hidden">
+            <template v-if="currentBarbershop?.logoUrl">
+              <img :src="currentBarbershop.logoUrl" :alt="currentBarbershop.name" class="w-full h-full object-cover" />
+            </template>
+            <template v-else>
+              <span class="text-black font-bold text-sm">{{ barbershopInitials }}</span>
+            </template>
           </div>
           <div class="flex-1 text-left">
-            <p class="text-sm font-medium text-white">Barbearia Premium</p>
+            <p class="text-sm font-medium text-white">{{ currentBarbershop?.name || 'Selecione uma barbearia' }}</p>
             <p class="text-xs text-emerald-400 flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               Aberto agora
@@ -36,6 +44,22 @@
           </div>
           <Icon name="lucide:chevron-down" class="w-4 h-4 text-neutral-500" />
         </button>
+
+        <!-- Barbershop Dropdown -->
+        <div v-if="showBarbershopSelector && barbershops.length > 1" class="mt-2 p-2 rounded-xl bg-neutral-800 border border-neutral-700">
+          <button
+            v-for="shop in barbershops"
+            :key="shop.id"
+            class="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-700 transition-colors"
+            :class="currentBarbershop?.id === shop.id ? 'bg-neutral-700' : ''"
+            @click="selectBarbershop(shop)"
+          >
+            <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-xs font-bold text-black">
+              {{ shop.name.charAt(0) }}
+            </div>
+            <span class="text-sm text-white">{{ shop.name }}</span>
+          </button>
+        </div>
       </div>
 
       <!-- Navigation -->
@@ -113,18 +137,21 @@
       <!-- User Section -->
       <div class="p-4 border-t border-neutral-800">
         <div class="flex items-center gap-3 p-3 rounded-xl hover:bg-neutral-800/50 transition-colors cursor-pointer">
-          <div class="w-10 h-10 rounded-xl bg-neutral-800 overflow-hidden">
-            <img 
-              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" 
-              alt="User"
-              class="w-full h-full object-cover"
-            />
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 overflow-hidden flex items-center justify-center">
+            <template v-if="user?.avatarUrl">
+              <img :src="user.avatarUrl" :alt="user.fullName" class="w-full h-full object-cover" />
+            </template>
+            <template v-else>
+              <span class="text-black font-bold text-sm">{{ userInitials }}</span>
+            </template>
           </div>
           <div class="flex-1">
-            <p class="text-sm font-medium text-white">Carlos Silva</p>
-            <p class="text-xs text-neutral-500">Administrador</p>
+            <p class="text-sm font-medium text-white">{{ user?.fullName || 'Usuário' }}</p>
+            <p class="text-xs text-neutral-500">{{ roleLabel }}</p>
           </div>
-          <Icon name="lucide:log-out" class="w-4 h-4 text-neutral-500 hover:text-red-400 transition-colors" />
+          <button @click="handleLogout" class="p-2 rounded-lg hover:bg-neutral-700 transition-colors">
+            <Icon name="lucide:log-out" class="w-4 h-4 text-neutral-500 hover:text-red-400 transition-colors" />
+          </button>
         </div>
       </div>
     </aside>
@@ -190,7 +217,64 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 const route = useRoute()
+const { user, barbershops, currentBarbershop, isAuthenticated, isManager, init, logout, setCurrentBarbershop } = useAuth()
+
 const sidebarOpen = ref(false)
+const showBarbershopSelector = ref(false)
+
+// Initialize auth
+onMounted(async () => {
+  init()
+  
+  // Redirect if not authenticated or not a manager
+  if (!isAuthenticated.value || !isManager.value) {
+    navigateTo('/')
+  }
+})
+
+// Watch for auth changes
+watch(isAuthenticated, (isAuth) => {
+  if (!isAuth) {
+    navigateTo('/')
+  }
+})
+
+const userInitials = computed(() => {
+  if (!user.value?.fullName) return '?'
+  const names = user.value.fullName.split(' ')
+  if (names.length >= 2) {
+    return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase()
+  }
+  return names[0][0].toUpperCase()
+})
+
+const barbershopInitials = computed(() => {
+  if (!currentBarbershop.value?.name) return 'BP'
+  const words = currentBarbershop.value.name.split(' ')
+  if (words.length >= 2) {
+    return `${words[0][0]}${words[1][0]}`.toUpperCase()
+  }
+  return words[0].substring(0, 2).toUpperCase()
+})
+
+const roleLabel = computed(() => {
+  const roles: Record<string, string> = {
+    admin: 'Administrador',
+    manager: 'Gestor',
+    professional: 'Profissional',
+    client: 'Cliente'
+  }
+  return roles[user.value?.role || ''] || 'Usuário'
+})
+
+const selectBarbershop = (shop: any) => {
+  setCurrentBarbershop(shop)
+  showBarbershopSelector.value = false
+}
+
+const handleLogout = () => {
+  logout()
+}
 
 const mainNavItems = [
   { path: '/painel', icon: 'lucide:layout-dashboard', label: 'Dashboard' },
@@ -249,4 +333,3 @@ watch(() => route.path, () => {
   sidebarOpen.value = false
 })
 </script>
-

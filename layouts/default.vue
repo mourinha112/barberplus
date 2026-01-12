@@ -14,5 +14,15 @@
 </template>
 
 <script setup lang="ts">
-</script>
+const { init, fetchUser, isAuthenticated } = useAuth()
 
+// Initialize auth state from localStorage
+onMounted(async () => {
+  init()
+  
+  // If user has token, fetch fresh user data
+  if (isAuthenticated.value) {
+    await fetchUser()
+  }
+})
+</script>

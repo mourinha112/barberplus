@@ -3,13 +3,18 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.SUPABASE_URL || ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || ''
 
+// Verifica se Supabase está configurado
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseServiceKey)
+
 // Cliente admin (server-side) - tem acesso total
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
+export const supabaseAdmin = isSupabaseConfigured 
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : null as any
 
 // Função para criar cliente com token do usuário
 export const createSupabaseClient = (accessToken?: string) => {
@@ -32,14 +37,6 @@ export const getTokenFromHeader = (event: any): string | undefined => {
     return authHeader.substring(7)
   }
   return undefined
-}
-
-// Helper para resposta de erro
-export const createError = (statusCode: number, message: string) => {
-  return {
-    statusCode,
-    message
-  }
 }
 
 // Helper para paginação

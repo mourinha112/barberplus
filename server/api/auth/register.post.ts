@@ -1,19 +1,42 @@
 import { supabaseAdmin } from '~/server/utils/supabase'
-import bcrypt from 'bcryptjs'
 
 export default defineEventHandler(async (event) => {
-  try {
-    const body = await readBody(event)
-    const { email, password, fullName, phone, role = 'client' } = body
+  const body = await readBody(event)
+  const { email, password, fullName, phone, role = 'client' } = body
 
-    // Validações
-    if (!email || !password || !fullName) {
-      throw createError({
-        statusCode: 400,
-        message: 'Email, senha e nome são obrigatórios'
-      })
+  // Validações
+  if (!email || !password || !fullName) {
+    throw createError({
+      statusCode: 400,
+      message: 'Email, senha e nome são obrigatórios'
+    })
+  }
+
+  // Verificar se Supabase está configurado
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+    // Modo demo - retorna usuário fake para testes
+    console.warn('⚠️ Supabase não configurado - usando modo demo')
+    
+    const demoUser = {
+      id: 'demo-' + Date.now(),
+      email,
+      fullName,
+      phone,
+      role,
+      avatarUrl: null
     }
+    
+    const token = await generateToken(demoUser)
+    
+    return {
+      success: true,
+      user: demoUser,
+      token,
+      demo: true
+    }
+  }
 
+  try {
     // Verificar se email já existe
     const { data: existingUser } = await supabaseAdmin
       .from('users')
@@ -29,7 +52,8 @@ export default defineEventHandler(async (event) => {
     }
 
     // Hash da senha
-    const passwordHash = await bcrypt.hash(password, 10)
+    const bcrypt = await import('bcryptjs')
+    const passwordHash = await bcrypt.default.hash(password, 10)
 
     // Criar usuário
     const { data: user, error } = await supabaseAdmin
@@ -45,14 +69,19 @@ export default defineEventHandler(async (event) => {
       .single()
 
     if (error) {
+      console.error('Erro ao criar usuário:', error)
       throw createError({
         statusCode: 500,
-        message: 'Erro ao criar usuário'
+        message: 'Erro ao criar usuário: ' + error.message
       })
     }
 
     // Gerar token JWT
-    const token = await generateToken(user)
+    const token = await generateToken({
+      id: user.id,
+      email: user.email,
+      role: user.role
+    })
 
     return {
       success: true,
@@ -67,26 +96,31 @@ export default defineEventHandler(async (event) => {
       token
     }
   } catch (error: any) {
+    // Se já for um H3Error, re-lança
+    if (error.statusCode && typeof error.statusCode === 'number') {
+      throw error
+    }
+    // Senão, cria um novo erro
+    console.error('Erro no registro:', error)
     throw createError({
-      statusCode: error.statusCode || 500,
+      statusCode: 500,
       message: error.message || 'Erro interno do servidor'
     })
   }
 })
 
 // Função para gerar JWT
-async function generateToken(user: any) {
+async function generateToken(user: { id: string; email: string; role?: string }) {
   const jwt = await import('jsonwebtoken')
-  const secret = process.env.JWT_SECRET || 'fallback-secret'
+  const secret = process.env.JWT_SECRET || 'barberplus-demo-secret-2024'
   
   return jwt.default.sign(
     {
       sub: user.id,
       email: user.email,
-      role: user.role
+      role: user.role || 'client'
     },
     secret,
     { expiresIn: '7d' }
   )
 }
-
