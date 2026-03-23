@@ -208,9 +208,10 @@ import { onClickOutside } from '@vueuse/core'
 
 const { user, isAuthenticated, isManager, logout, init } = useAuth()
 
-// Initialize auth on mount
+// Initialize auth and detect location on mount
 onMounted(() => {
   init()
+  detectLocation()
 })
 
 const showSearch = ref(false)
@@ -218,9 +219,38 @@ const showLocationModal = ref(false)
 const showAuthModal = ref(false)
 const showProfileMenu = ref(false)
 const searchQuery = ref('')
-const currentLocation = ref('Aracaju, SE')
+const currentLocation = ref('Localizando...')
 const recentSearches = ref(['Corte degradê', 'Barba', 'Barbearia Premium'])
 const profileDropdown = ref<HTMLElement | null>(null)
+
+// Detectar cidade do usuário via geolocalização
+const detectLocation = () => {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    currentLocation.value = 'Sua cidade'
+    return
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      try {
+        const { latitude, longitude } = position.coords
+        const response = await $fetch<any>(
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=pt-BR`,
+          { headers: { 'User-Agent': 'BarberPlus/1.0' } }
+        )
+        const city = response?.address?.city || response?.address?.town || response?.address?.municipality || ''
+        const state = response?.address?.state_code?.toUpperCase() || response?.address?.state || ''
+        currentLocation.value = city && state ? `${city}, ${state}` : city || 'Sua cidade'
+      } catch {
+        currentLocation.value = 'Sua cidade'
+      }
+    },
+    () => {
+      currentLocation.value = 'Sua cidade'
+    },
+    { timeout: 5000 }
+  )
+}
 
 // Close dropdown when clicking outside
 onClickOutside(profileDropdown, () => {
