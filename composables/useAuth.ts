@@ -1,5 +1,3 @@
-import { ref, computed } from 'vue'
-
 interface User {
   id: string
   email: string
@@ -19,26 +17,26 @@ interface Barbershop {
 }
 
 // Estado global compartilhado (fora do composable para manter entre componentes)
-const user = ref<User | null>(null)
-const token = ref<string | null>(null)
-const barbershops = ref<Barbershop[]>([])
-const currentBarbershop = ref<Barbershop | null>(null)
-const isLoading = ref(false)
-const _initialized = ref(false)
+const authUser = ref<User | null>(null)
+const authToken = ref<string | null>(null)
+const authBarbershops = ref<Barbershop[]>([])
+const authCurrentBarbershop = ref<Barbershop | null>(null)
+const authIsLoading = ref(false)
+const authInitialized = ref(false)
 
 export const useAuth = () => {
-  const isAuthenticated = computed(() => !!token.value && !!user.value)
-  const isManager = computed(() => user.value?.role === 'manager' || user.value?.role === 'admin')
+  const isAuthenticated = computed(() => !!authToken.value && !!authUser.value)
+  const isManager = computed(() => authUser.value?.role === 'manager' || authUser.value?.role === 'admin')
 
   // Header de autenticação
   const authHeaders = computed(() => {
-    if (!token.value) return {}
-    return { Authorization: `Bearer ${token.value}` }
+    if (!authToken.value) return {}
+    return { Authorization: `Bearer ${authToken.value}` }
   })
 
   // Inicializar do localStorage
   const init = () => {
-    if (_initialized.value) return
+    if (authInitialized.value) return
     if (typeof window === 'undefined') return
 
     try {
@@ -46,17 +44,17 @@ export const useAuth = () => {
       const savedUser = localStorage.getItem('barberplus_user')
       const savedBarbershop = localStorage.getItem('barberplus_barbershop')
 
-      if (savedToken) token.value = savedToken
+      if (savedToken) authToken.value = savedToken
       if (savedUser) {
         try {
-          user.value = JSON.parse(savedUser)
+          authUser.value = JSON.parse(savedUser)
         } catch {
           localStorage.removeItem('barberplus_user')
         }
       }
       if (savedBarbershop) {
         try {
-          currentBarbershop.value = JSON.parse(savedBarbershop)
+          authCurrentBarbershop.value = JSON.parse(savedBarbershop)
         } catch {
           localStorage.removeItem('barberplus_barbershop')
         }
@@ -65,12 +63,12 @@ export const useAuth = () => {
       // localStorage pode falhar em contextos restritos
     }
 
-    _initialized.value = true
+    authInitialized.value = true
   }
 
   // Login
   const login = async (email: string, password: string) => {
-    isLoading.value = true
+    authIsLoading.value = true
     try {
       const response = await $fetch('/api/auth/login', {
         method: 'POST',
@@ -78,7 +76,7 @@ export const useAuth = () => {
       }) as any
 
       if (response.success) {
-        _setAuthData(response.token, response.user)
+        setAuthData(response.token, response.user)
 
         // Buscar barbearias se for gestor
         if (response.user.role === 'manager' || response.user.role === 'admin') {
@@ -89,11 +87,11 @@ export const useAuth = () => {
       }
 
       return { success: false, error: 'Erro ao fazer login' }
-    } catch (error: any) {
-      const message = error.data?.message || error.message || 'Erro ao fazer login'
+    } catch (err: any) {
+      const message = err.data?.message || err.message || 'Erro ao fazer login'
       return { success: false, error: message }
     } finally {
-      isLoading.value = false
+      authIsLoading.value = false
     }
   }
 
@@ -105,7 +103,7 @@ export const useAuth = () => {
     phone?: string
     role?: string
   }) => {
-    isLoading.value = true
+    authIsLoading.value = true
     try {
       const response = await $fetch('/api/auth/register', {
         method: 'POST',
@@ -113,9 +111,8 @@ export const useAuth = () => {
       }) as any
 
       if (response.success) {
-        _setAuthData(response.token, response.user)
+        setAuthData(response.token, response.user)
 
-        // Se registrou como manager, buscar barbearias
         if (response.user.role === 'manager' || response.user.role === 'admin') {
           await fetchBarbershops()
         }
@@ -124,21 +121,21 @@ export const useAuth = () => {
       }
 
       return { success: false, error: 'Erro ao criar conta' }
-    } catch (error: any) {
-      const message = error.data?.message || error.message || 'Erro ao criar conta'
+    } catch (err: any) {
+      const message = err.data?.message || err.message || 'Erro ao criar conta'
       return { success: false, error: message }
     } finally {
-      isLoading.value = false
+      authIsLoading.value = false
     }
   }
 
   // Logout
   const logout = () => {
-    token.value = null
-    user.value = null
-    barbershops.value = []
-    currentBarbershop.value = null
-    _initialized.value = false
+    authToken.value = null
+    authUser.value = null
+    authBarbershops.value = []
+    authCurrentBarbershop.value = null
+    authInitialized.value = false
 
     if (typeof window !== 'undefined') {
       localStorage.removeItem('barberplus_token')
@@ -151,17 +148,17 @@ export const useAuth = () => {
 
   // Buscar dados do usuário
   const fetchUser = async () => {
-    if (!token.value) return
+    if (!authToken.value) return
 
     try {
       const response = await $fetch('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token.value}` }
+        headers: { Authorization: `Bearer ${authToken.value}` }
       }) as any
 
       if (response.success) {
-        user.value = response.user
+        authUser.value = response.user
         if (response.barbershops) {
-          barbershops.value = response.barbershops
+          authBarbershops.value = response.barbershops
         }
 
         if (typeof window !== 'undefined') {
@@ -169,45 +166,43 @@ export const useAuth = () => {
         }
       }
     } catch {
-      // Token inválido, fazer logout
       logout()
     }
   }
 
   // Buscar barbearias do gestor
   const fetchBarbershops = async () => {
-    if (!token.value) return
+    if (!authToken.value) return
 
     try {
       const response = await $fetch('/api/painel/barbershop/my', {
-        headers: { Authorization: `Bearer ${token.value}` }
+        headers: { Authorization: `Bearer ${authToken.value}` }
       }) as any
 
       if (response.success) {
-        barbershops.value = response.data || []
+        authBarbershops.value = response.data || []
 
-        // Selecionar primeira barbearia se não tiver selecionada
-        if (barbershops.value.length > 0 && !currentBarbershop.value) {
-          setCurrentBarbershop(barbershops.value[0])
+        if (authBarbershops.value.length > 0 && !authCurrentBarbershop.value) {
+          setCurrentBarbershop(authBarbershops.value[0])
         }
       }
-    } catch (error) {
-      console.error('Erro ao buscar barbearias:', error)
+    } catch (err) {
+      console.error('Erro ao buscar barbearias:', err)
     }
   }
 
   // Selecionar barbearia atual
   const setCurrentBarbershop = (barbershop: Barbershop) => {
-    currentBarbershop.value = barbershop
+    authCurrentBarbershop.value = barbershop
     if (typeof window !== 'undefined') {
       localStorage.setItem('barberplus_barbershop', JSON.stringify(barbershop))
     }
   }
 
   // Helper interno para setar dados de auth
-  const _setAuthData = (newToken: string, newUser: User) => {
-    token.value = newToken
-    user.value = newUser
+  const setAuthData = (newToken: string, newUser: User) => {
+    authToken.value = newToken
+    authUser.value = newUser
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('barberplus_token', newToken)
@@ -216,11 +211,11 @@ export const useAuth = () => {
   }
 
   return {
-    user,
-    token,
-    barbershops,
-    currentBarbershop,
-    isLoading,
+    user: authUser,
+    token: authToken,
+    barbershops: authBarbershops,
+    currentBarbershop: authCurrentBarbershop,
+    isLoading: authIsLoading,
     isAuthenticated,
     isManager,
     authHeaders,
