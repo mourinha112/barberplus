@@ -46,7 +46,7 @@
             <span>{{ creatingBarbershop ? 'Criando...' : 'Criar Barbearia' }}</span>
           </button>
 
-          <p v-if="createError" class="text-red-400 text-sm text-center">{{ createError }}</p>
+          <p v-if="createBarbershopError" class="text-red-400 text-sm text-center">{{ createBarbershopError }}</p>
         </form>
       </div>
     </UModal>
@@ -321,7 +321,7 @@ const showBarbershopSelector = ref(false)
 const showCreateBarbershop = ref(false)
 const loadingBarbershops = ref(true)
 const creatingBarbershop = ref(false)
-const createError = ref('')
+const createBarbershopError = ref('')
 const newBarbershop = ref({
   name: '',
   slug: ''
@@ -363,7 +363,7 @@ const createBarbershop = async () => {
   if (!newBarbershop.value.name || !token.value) return
 
   creatingBarbershop.value = true
-  createError.value = ''
+  createBarbershopError.value = ''
 
   try {
     const response = await $fetch('/api/painel/barbershop', {
@@ -385,7 +385,7 @@ const createBarbershop = async () => {
       newBarbershop.value = { name: '', slug: '' }
     }
   } catch (error: any) {
-    createError.value = error.data?.message || error.message || 'Erro ao criar barbearia'
+    createBarbershopError.value = error.data?.message || error.message || 'Erro ao criar barbearia'
   } finally {
     creatingBarbershop.value = false
   }
