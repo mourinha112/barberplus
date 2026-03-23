@@ -34,6 +34,12 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  runtimeConfig: {
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY || '',
+    jwtSecret: process.env.JWT_SECRET || 'barberplus-demo-secret-2024'
+  },
+
   compatibilityDate: '2024-12-22'
 })
 

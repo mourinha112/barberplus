@@ -14,29 +14,58 @@ interface Barbershop {
   name: string
   slug: string
   logoUrl?: string
+  logo_url?: string
+  [key: string]: any
 }
 
+// Estado global compartilhado (fora do composable para manter entre componentes)
 const user = ref<User | null>(null)
 const token = ref<string | null>(null)
 const barbershops = ref<Barbershop[]>([])
 const currentBarbershop = ref<Barbershop | null>(null)
 const isLoading = ref(false)
+const _initialized = ref(false)
 
 export const useAuth = () => {
   const isAuthenticated = computed(() => !!token.value && !!user.value)
   const isManager = computed(() => user.value?.role === 'manager' || user.value?.role === 'admin')
 
+  // Header de autenticação
+  const authHeaders = computed(() => {
+    if (!token.value) return {}
+    return { Authorization: `Bearer ${token.value}` }
+  })
+
   // Inicializar do localStorage
   const init = () => {
-    if (typeof window !== 'undefined') {
+    if (_initialized.value) return
+    if (typeof window === 'undefined') return
+
+    try {
       const savedToken = localStorage.getItem('barberplus_token')
       const savedUser = localStorage.getItem('barberplus_user')
       const savedBarbershop = localStorage.getItem('barberplus_barbershop')
 
       if (savedToken) token.value = savedToken
-      if (savedUser) user.value = JSON.parse(savedUser)
-      if (savedBarbershop) currentBarbershop.value = JSON.parse(savedBarbershop)
+      if (savedUser) {
+        try {
+          user.value = JSON.parse(savedUser)
+        } catch {
+          localStorage.removeItem('barberplus_user')
+        }
+      }
+      if (savedBarbershop) {
+        try {
+          currentBarbershop.value = JSON.parse(savedBarbershop)
+        } catch {
+          localStorage.removeItem('barberplus_barbershop')
+        }
+      }
+    } catch {
+      // localStorage pode falhar em contextos restritos
     }
+
+    _initialized.value = true
   }
 
   // Login
@@ -49,11 +78,7 @@ export const useAuth = () => {
       }) as any
 
       if (response.success) {
-        token.value = response.token
-        user.value = response.user
-
-        localStorage.setItem('barberplus_token', response.token)
-        localStorage.setItem('barberplus_user', JSON.stringify(response.user))
+        _setAuthData(response.token, response.user)
 
         // Buscar barbearias se for gestor
         if (response.user.role === 'manager' || response.user.role === 'admin') {
@@ -65,7 +90,8 @@ export const useAuth = () => {
 
       return { success: false, error: 'Erro ao fazer login' }
     } catch (error: any) {
-      return { success: false, error: error.data?.message || 'Erro ao fazer login' }
+      const message = error.data?.message || error.message || 'Erro ao fazer login'
+      return { success: false, error: message }
     } finally {
       isLoading.value = false
     }
@@ -87,18 +113,20 @@ export const useAuth = () => {
       }) as any
 
       if (response.success) {
-        token.value = response.token
-        user.value = response.user
+        _setAuthData(response.token, response.user)
 
-        localStorage.setItem('barberplus_token', response.token)
-        localStorage.setItem('barberplus_user', JSON.stringify(response.user))
+        // Se registrou como manager, buscar barbearias
+        if (response.user.role === 'manager' || response.user.role === 'admin') {
+          await fetchBarbershops()
+        }
 
         return { success: true }
       }
 
       return { success: false, error: 'Erro ao criar conta' }
     } catch (error: any) {
-      return { success: false, error: error.data?.message || 'Erro ao criar conta' }
+      const message = error.data?.message || error.message || 'Erro ao criar conta'
+      return { success: false, error: message }
     } finally {
       isLoading.value = false
     }
@@ -110,10 +138,13 @@ export const useAuth = () => {
     user.value = null
     barbershops.value = []
     currentBarbershop.value = null
+    _initialized.value = false
 
-    localStorage.removeItem('barberplus_token')
-    localStorage.removeItem('barberplus_user')
-    localStorage.removeItem('barberplus_barbershop')
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('barberplus_token')
+      localStorage.removeItem('barberplus_user')
+      localStorage.removeItem('barberplus_barbershop')
+    }
 
     navigateTo('/')
   }
@@ -129,9 +160,13 @@ export const useAuth = () => {
 
       if (response.success) {
         user.value = response.user
-        barbershops.value = response.barbershops || []
+        if (response.barbershops) {
+          barbershops.value = response.barbershops
+        }
 
-        localStorage.setItem('barberplus_user', JSON.stringify(response.user))
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('barberplus_user', JSON.stringify(response.user))
+        }
       }
     } catch {
       // Token inválido, fazer logout
@@ -144,34 +179,41 @@ export const useAuth = () => {
     if (!token.value) return
 
     try {
-      const response = await $fetch('/api/auth/me', {
+      const response = await $fetch('/api/painel/barbershop/my', {
         headers: { Authorization: `Bearer ${token.value}` }
       }) as any
 
-      if (response.success && response.barbershops) {
-        barbershops.value = response.barbershops
+      if (response.success) {
+        barbershops.value = response.data || []
 
         // Selecionar primeira barbearia se não tiver selecionada
-        if (response.barbershops.length > 0 && !currentBarbershop.value) {
-          setCurrentBarbershop(response.barbershops[0])
+        if (barbershops.value.length > 0 && !currentBarbershop.value) {
+          setCurrentBarbershop(barbershops.value[0])
         }
       }
-    } catch {
-      // Silently fail
+    } catch (error) {
+      console.error('Erro ao buscar barbearias:', error)
     }
   }
 
   // Selecionar barbearia atual
   const setCurrentBarbershop = (barbershop: Barbershop) => {
     currentBarbershop.value = barbershop
-    localStorage.setItem('barberplus_barbershop', JSON.stringify(barbershop))
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('barberplus_barbershop', JSON.stringify(barbershop))
+    }
   }
 
-  // Header de autenticação
-  const authHeaders = computed(() => {
-    if (!token.value) return {}
-    return { Authorization: `Bearer ${token.value}` }
-  })
+  // Helper interno para setar dados de auth
+  const _setAuthData = (newToken: string, newUser: User) => {
+    token.value = newToken
+    user.value = newUser
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('barberplus_token', newToken)
+      localStorage.setItem('barberplus_user', JSON.stringify(newUser))
+    }
+  }
 
   return {
     user,
@@ -191,4 +233,3 @@ export const useAuth = () => {
     setCurrentBarbershop
   }
 }
-

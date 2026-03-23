@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '~/server/utils/supabase'
+import { supabaseAdmin, isSupabaseConfigured } from '~/server/utils/supabase'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -12,11 +12,17 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  if (password.length < 6) {
+    throw createError({
+      statusCode: 400,
+      message: 'A senha deve ter no mínimo 6 caracteres'
+    })
+  }
+
   // Verificar se Supabase está configurado
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
-    // Modo demo - retorna usuário fake para testes
+  if (!isSupabaseConfigured) {
     console.warn('⚠️ Supabase não configurado - usando modo demo')
-    
+
     const demoUser = {
       id: 'demo-' + Date.now(),
       email,
@@ -25,9 +31,9 @@ export default defineEventHandler(async (event) => {
       role,
       avatarUrl: null
     }
-    
+
     const token = await generateToken(demoUser)
-    
+
     return {
       success: true,
       user: demoUser,
@@ -42,7 +48,7 @@ export default defineEventHandler(async (event) => {
       .from('users')
       .select('id')
       .eq('email', email)
-      .single()
+      .maybeSingle()
 
     if (existingUser) {
       throw createError({
@@ -62,7 +68,7 @@ export default defineEventHandler(async (event) => {
         email,
         password_hash: passwordHash,
         full_name: fullName,
-        phone,
+        phone: phone || null,
         role
       })
       .select()
@@ -70,6 +76,13 @@ export default defineEventHandler(async (event) => {
 
     if (error) {
       console.error('Erro ao criar usuário:', error)
+      // Verificar se é erro de tabela não encontrada
+      if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+        throw createError({
+          statusCode: 500,
+          message: 'Tabela de usuários não encontrada. Execute o schema SQL no Supabase.'
+        })
+      }
       throw createError({
         statusCode: 500,
         message: 'Erro ao criar usuário: ' + error.message
@@ -96,11 +109,9 @@ export default defineEventHandler(async (event) => {
       token
     }
   } catch (error: any) {
-    // Se já for um H3Error, re-lança
     if (error.statusCode && typeof error.statusCode === 'number') {
       throw error
     }
-    // Senão, cria um novo erro
     console.error('Erro no registro:', error)
     throw createError({
       statusCode: 500,
@@ -113,7 +124,7 @@ export default defineEventHandler(async (event) => {
 async function generateToken(user: { id: string; email: string; role?: string }) {
   const jwt = await import('jsonwebtoken')
   const secret = process.env.JWT_SECRET || 'barberplus-demo-secret-2024'
-  
+
   return jwt.default.sign(
     {
       sub: user.id,

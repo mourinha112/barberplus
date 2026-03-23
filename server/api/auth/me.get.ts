@@ -1,9 +1,9 @@
-import { supabaseAdmin } from '~/server/utils/supabase'
+import { supabaseAdmin, isSupabaseConfigured } from '~/server/utils/supabase'
 
 export default defineEventHandler(async (event) => {
   try {
     const authHeader = getHeader(event, 'authorization')
-    
+
     if (!authHeader?.startsWith('Bearer ')) {
       throw createError({
         statusCode: 401,
@@ -12,11 +12,11 @@ export default defineEventHandler(async (event) => {
     }
 
     const token = authHeader.substring(7)
-    
+
     // Verificar token
     const jwt = await import('jsonwebtoken')
-    const secret = process.env.JWT_SECRET || 'fallback-secret'
-    
+    const secret = process.env.JWT_SECRET || 'barberplus-demo-secret-2024'
+
     let decoded: any
     try {
       decoded = jwt.default.verify(token, secret)
@@ -27,14 +27,40 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Modo demo
+    if (!isSupabaseConfigured || (decoded.sub && decoded.sub.startsWith('demo-'))) {
+      return {
+        success: true,
+        user: {
+          id: decoded.sub,
+          email: decoded.email,
+          fullName: 'Usuário Demo',
+          phone: null,
+          role: decoded.role || 'client',
+          avatarUrl: null,
+          emailVerified: false,
+          phoneVerified: false
+        },
+        barbershops: []
+      }
+    }
+
     // Buscar usuário atualizado
     const { data: user, error } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', decoded.sub)
-      .single()
+      .maybeSingle()
 
-    if (error || !user) {
+    if (error) {
+      console.error('Erro ao buscar usuário:', error)
+      throw createError({
+        statusCode: 500,
+        message: 'Erro ao buscar dados do usuário'
+      })
+    }
+
+    if (!user) {
       throw createError({
         statusCode: 404,
         message: 'Usuário não encontrado'
@@ -48,7 +74,7 @@ export default defineEventHandler(async (event) => {
         .from('barbershops')
         .select('id, name, slug, logo_url')
         .eq('owner_id', user.id)
-      
+
       barbershops = data || []
     }
 
@@ -73,4 +99,3 @@ export default defineEventHandler(async (event) => {
     })
   }
 })
-

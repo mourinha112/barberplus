@@ -1,4 +1,4 @@
-import { supabaseAdmin, getPagination } from '~/server/utils/supabase'
+import { supabaseAdmin, isSupabaseConfigured, getPagination } from '~/server/utils/supabase'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -21,6 +21,20 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Modo demo
+    if (!isSupabaseConfigured || (typeof barbershopId === 'string' && barbershopId.startsWith('demo-'))) {
+      return {
+        success: true,
+        data: [],
+        pagination: {
+          page: 1,
+          limit: Number(limit),
+          total: 0,
+          totalPages: 0
+        }
+      }
+    }
+
     const { from, to } = getPagination(Number(page), Number(limit))
 
     let queryBuilder = supabaseAdmin
@@ -33,30 +47,22 @@ export default defineEventHandler(async (event) => {
       `, { count: 'exact' })
       .eq('barbershop_id', barbershopId)
 
-    // Filtro por data específica
     if (date) {
       queryBuilder = queryBuilder.eq('date', date)
     }
-
-    // Filtro por período
     if (startDate) {
       queryBuilder = queryBuilder.gte('date', startDate)
     }
     if (endDate) {
       queryBuilder = queryBuilder.lte('date', endDate)
     }
-
-    // Filtro por status
     if (status) {
       queryBuilder = queryBuilder.eq('status', status)
     }
-
-    // Filtro por profissional
     if (professionalId) {
       queryBuilder = queryBuilder.eq('professional_id', professionalId)
     }
 
-    // Ordenação e paginação
     queryBuilder = queryBuilder
       .order('date', { ascending: true })
       .order('start_time', { ascending: true })
@@ -65,6 +71,14 @@ export default defineEventHandler(async (event) => {
     const { data: appointments, error, count } = await queryBuilder
 
     if (error) {
+      // Se tabela não existe, retorna vazio
+      if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+        return {
+          success: true,
+          data: [],
+          pagination: { page: Number(page), limit: Number(limit), total: 0, totalPages: 0 }
+        }
+      }
       throw createError({
         statusCode: 500,
         message: 'Erro ao buscar agendamentos'
@@ -88,4 +102,3 @@ export default defineEventHandler(async (event) => {
     })
   }
 })
-

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '~/server/utils/supabase'
+import { supabaseAdmin, isSupabaseConfigured } from '~/server/utils/supabase'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -13,10 +13,9 @@ export default defineEventHandler(async (event) => {
   }
 
   // Verificar se Supabase está configurado
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
-    // Modo demo - aceita qualquer login
+  if (!isSupabaseConfigured) {
     console.warn('⚠️ Supabase não configurado - usando modo demo')
-    
+
     const demoUser = {
       id: 'demo-' + Date.now(),
       email,
@@ -25,9 +24,9 @@ export default defineEventHandler(async (event) => {
       role: email.includes('admin') ? 'admin' : email.includes('manager') ? 'manager' : 'client',
       avatarUrl: null
     }
-    
+
     const token = await generateToken(demoUser)
-    
+
     return {
       success: true,
       user: demoUser,
@@ -42,9 +41,23 @@ export default defineEventHandler(async (event) => {
       .from('users')
       .select('*')
       .eq('email', email)
-      .single()
+      .maybeSingle()
 
-    if (error || !user) {
+    if (error) {
+      console.error('Erro ao buscar usuário:', error)
+      if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+        throw createError({
+          statusCode: 500,
+          message: 'Tabela de usuários não encontrada. Execute o schema SQL no Supabase.'
+        })
+      }
+      throw createError({
+        statusCode: 500,
+        message: 'Erro interno do servidor'
+      })
+    }
+
+    if (!user) {
       throw createError({
         statusCode: 401,
         message: 'Credenciais inválidas'
@@ -87,11 +100,9 @@ export default defineEventHandler(async (event) => {
       token
     }
   } catch (error: any) {
-    // Se já for um H3Error, re-lança
     if (error.statusCode && typeof error.statusCode === 'number') {
       throw error
     }
-    // Senão, cria um novo erro
     console.error('Erro no login:', error)
     throw createError({
       statusCode: 500,
@@ -104,7 +115,7 @@ export default defineEventHandler(async (event) => {
 async function generateToken(user: { id: string; email: string; role?: string }) {
   const jwt = await import('jsonwebtoken')
   const secret = process.env.JWT_SECRET || 'barberplus-demo-secret-2024'
-  
+
   return jwt.default.sign(
     {
       sub: user.id,

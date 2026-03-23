@@ -1,18 +1,17 @@
-import { supabaseAdmin } from '~/server/utils/supabase'
-
 // Middleware de autenticação
 export default defineEventHandler(async (event) => {
   // Rotas que não precisam de autenticação
   const publicRoutes = [
     '/api/auth/login',
     '/api/auth/register',
+    '/api/auth/me',
     '/api/marketplace',
     '/api/barbershops',
     '/api/link-bio'
   ]
 
   const path = event.path || ''
-  
+
   // Ignorar rotas públicas e métodos que não são de API
   if (!path.startsWith('/api/') || publicRoutes.some(route => path.startsWith(route))) {
     return
@@ -21,21 +20,21 @@ export default defineEventHandler(async (event) => {
   // Verificar se é rota de painel (requer auth)
   if (path.startsWith('/api/painel/')) {
     const authHeader = getHeader(event, 'authorization')
-    
+
     if (!authHeader?.startsWith('Bearer ')) {
       throw createError({
         statusCode: 401,
-        message: 'Não autorizado'
+        message: 'Não autorizado - token não fornecido'
       })
     }
 
     const token = authHeader.substring(7)
-    
+
     try {
       const jwt = await import('jsonwebtoken')
-      const secret = process.env.JWT_SECRET || 'fallback-secret'
+      const secret = process.env.JWT_SECRET || 'barberplus-demo-secret-2024'
       const decoded: any = jwt.default.verify(token, secret)
-      
+
       // Adicionar usuário ao contexto
       event.context.auth = {
         userId: decoded.sub,
@@ -45,9 +44,8 @@ export default defineEventHandler(async (event) => {
     } catch {
       throw createError({
         statusCode: 401,
-        message: 'Token inválido'
+        message: 'Token inválido ou expirado'
       })
     }
   }
 })
-
