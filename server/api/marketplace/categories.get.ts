@@ -1,7 +1,11 @@
-import { supabaseAdmin } from '~/server/utils/supabase'
+import { supabaseAdmin, isSupabaseConfigured } from '~/server/utils/supabase'
 
 export default defineEventHandler(async (event) => {
   try {
+    if (!isSupabaseConfigured) {
+      return { success: true, data: [] }
+    }
+
     const { data: categories, error } = await supabaseAdmin
       .from('marketplace_categories')
       .select('*')

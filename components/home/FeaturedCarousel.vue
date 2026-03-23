@@ -10,7 +10,7 @@
           </h2>
           <p class="text-sm text-neutral-500 mt-0.5">As melhores da sua região</p>
         </div>
-        <NuxtLink 
+        <NuxtLink
           to="/buscar?filter=featured"
           class="flex items-center gap-1 text-sm text-amber-500 hover:text-amber-400 transition-colors"
         >
@@ -20,30 +20,43 @@
       </div>
     </div>
 
+    <!-- Loading -->
+    <div v-if="loading" class="flex gap-4 px-4 md:px-8 lg:px-16">
+      <div v-for="i in 3" :key="i" class="flex-shrink-0 w-72 md:w-80 h-72 rounded-2xl bg-neutral-800 animate-pulse" />
+    </div>
+
+    <!-- Empty -->
+    <div v-else-if="shops.length === 0" class="px-4 md:px-8 lg:px-16">
+      <div class="p-8 rounded-2xl bg-neutral-900/50 border border-neutral-800 text-center">
+        <Icon name="lucide:store" class="w-10 h-10 text-neutral-600 mx-auto mb-2" />
+        <p class="text-neutral-500 text-sm">Nenhuma barbearia em destaque ainda</p>
+      </div>
+    </div>
+
     <!-- Carousel -->
-    <div class="relative">
-      <div 
+    <div v-else class="relative">
+      <div
         ref="carouselRef"
         class="flex gap-4 overflow-x-auto scrollbar-hide px-4 md:px-8 lg:px-16 snap-x snap-mandatory"
         @scroll="onScroll"
       >
-        <div 
-          v-for="(shop, index) in featuredShops" 
+        <div
+          v-for="(shop, index) in shops"
           :key="shop.id"
           class="flex-shrink-0 w-72 md:w-80 snap-start"
           :style="{ animationDelay: `${index * 100}ms` }"
         >
-          <NuxtLink 
+          <NuxtLink
             :to="`/barbearia/${shop.slug}`"
             class="block rounded-2xl overflow-hidden group relative h-72"
           >
             <!-- Background Image -->
-            <img 
-              :src="shop.coverImage" 
+            <img
+              :src="shop.coverImage"
               :alt="shop.name"
               class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             />
-            
+
             <!-- Gradient Overlay -->
             <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
 
@@ -76,9 +89,9 @@
                   <div class="flex items-center gap-3 text-sm">
                     <div class="flex items-center gap-1">
                       <Icon name="lucide:star" class="w-4 h-4 text-amber-400 fill-amber-400" />
-                      <span class="text-white font-medium">{{ shop.rating }}</span>
+                      <span class="text-white font-medium">{{ shop.rating || '0.0' }}</span>
                     </div>
-                    <div class="flex items-center gap-1 text-amber-500">
+                    <div v-if="shop.distance" class="flex items-center gap-1 text-amber-500">
                       <Icon name="lucide:map-pin" class="w-3.5 h-3.5" />
                       <span>{{ shop.distance }}</span>
                     </div>
@@ -96,9 +109,9 @@
       </div>
 
       <!-- Navigation Dots -->
-      <div class="flex justify-center gap-2 mt-4">
-        <button 
-          v-for="(_, index) in featuredShops" 
+      <div v-if="shops.length > 1" class="flex justify-center gap-2 mt-4">
+        <button
+          v-for="(_, index) in shops"
           :key="index"
           :class="[
             'w-2 h-2 rounded-full transition-all duration-300',
@@ -112,56 +125,18 @@
 </template>
 
 <script setup lang="ts">
+defineProps<{
+  shops: any[]
+  loading?: boolean
+}>()
+
 const carouselRef = ref<HTMLElement | null>(null)
 const currentIndex = ref(0)
-
-const featuredShops = [
-  {
-    id: '1',
-    slug: 'barbearia-premium',
-    name: 'Barbearia Premium',
-    logo: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=200&h=200&fit=crop',
-    coverImage: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&h=600&fit=crop',
-    rating: 4.9,
-    distance: '1.2km',
-    isOpen: true
-  },
-  {
-    id: '2',
-    slug: 'barber-kings',
-    name: 'Barber Kings',
-    logo: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=200&h=200&fit=crop',
-    coverImage: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&h=600&fit=crop',
-    rating: 4.8,
-    distance: '2.5km',
-    isOpen: true
-  },
-  {
-    id: '3',
-    slug: 'classic-cuts',
-    name: 'Classic Cuts',
-    logo: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=200&h=200&fit=crop',
-    coverImage: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=800&h=600&fit=crop',
-    rating: 4.7,
-    distance: '3.1km',
-    isOpen: false
-  },
-  {
-    id: '4',
-    slug: 'the-gentlemans-barber',
-    name: "The Gentleman's Barber",
-    logo: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=200&h=200&fit=crop',
-    coverImage: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=800&h=600&fit=crop',
-    rating: 4.9,
-    distance: '0.8km',
-    isOpen: true
-  }
-]
 
 const onScroll = () => {
   if (!carouselRef.value) return
   const scrollLeft = carouselRef.value.scrollLeft
-  const itemWidth = 320 // approximate width + gap
+  const itemWidth = 320
   currentIndex.value = Math.round(scrollLeft / itemWidth)
 }
 
@@ -174,4 +149,3 @@ const scrollTo = (index: number) => {
   })
 }
 </script>
-

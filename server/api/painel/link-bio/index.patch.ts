@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
         .select('id')
         .eq('custom_slug', updateFields.customSlug)
         .neq('barbershop_id', barbershopId)
-        .single()
+        .maybeSingle()
 
       if (existing) {
         throw createError({

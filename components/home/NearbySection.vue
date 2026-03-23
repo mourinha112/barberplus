@@ -6,12 +6,12 @@
         <div>
           <h2 class="font-display text-xl font-semibold text-white flex items-center gap-2">
             <Icon name="lucide:map-pin" class="w-5 h-5 text-amber-500" />
-            Perto de você
+            Barbearias
           </h2>
-          <p class="text-sm text-neutral-500 mt-0.5">Baseado na sua localização</p>
+          <p class="text-sm text-neutral-500 mt-0.5">Cadastradas na plataforma</p>
         </div>
-        <NuxtLink 
-          to="/buscar?filter=nearby"
+        <NuxtLink
+          to="/buscar"
           class="flex items-center gap-1 text-sm text-amber-500 hover:text-amber-400 transition-colors"
         >
           Ver todas
@@ -19,10 +19,21 @@
         </NuxtLink>
       </div>
 
+      <!-- Loading -->
+      <div v-if="loading" class="space-y-3">
+        <div v-for="i in 3" :key="i" class="h-20 rounded-2xl bg-neutral-800 animate-pulse" />
+      </div>
+
+      <!-- Empty -->
+      <div v-else-if="shops.length === 0" class="p-8 rounded-2xl bg-neutral-900/50 border border-neutral-800 text-center">
+        <Icon name="lucide:store" class="w-10 h-10 text-neutral-600 mx-auto mb-2" />
+        <p class="text-neutral-500 text-sm">Nenhuma barbearia encontrada</p>
+      </div>
+
       <!-- List -->
-      <div class="space-y-3">
-        <BarbershopCardCompact 
-          v-for="(shop, index) in nearbyShops" 
+      <div v-else class="space-y-3 lg:hidden">
+        <BarbershopCardCompact
+          v-for="(shop, index) in shops.slice(0, visibleCount)"
           :key="shop.id"
           :barbershop="shop"
           class="fade-in-up animate-hidden"
@@ -31,10 +42,10 @@
       </div>
 
       <!-- Load More -->
-      <button 
-        v-if="hasMore"
-        class="w-full mt-4 py-3 rounded-xl border border-neutral-800 text-neutral-400 hover:text-white hover:border-amber-500/30 transition-all flex items-center justify-center gap-2"
-        @click="loadMore"
+      <button
+        v-if="!loading && shops.length > visibleCount"
+        class="w-full mt-4 py-3 rounded-xl border border-neutral-800 text-neutral-400 hover:text-white hover:border-amber-500/30 transition-all flex items-center justify-center gap-2 lg:hidden"
+        @click="visibleCount += 4"
       >
         <Icon name="lucide:plus" class="w-4 h-4" />
         Carregar mais
@@ -44,58 +55,10 @@
 </template>
 
 <script setup lang="ts">
-const hasMore = ref(true)
+defineProps<{
+  shops: any[]
+  loading?: boolean
+}>()
 
-const nearbyShops = ref([
-  {
-    id: '1',
-    slug: 'barbearia-falcone',
-    name: 'Barbearia Falcone',
-    logo: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=200&h=200&fit=crop',
-    address: 'Rua Lázaro Cárdenas, 123',
-    rating: 5.0,
-    distance: '1.26km',
-    isOpen: true,
-    featured: true
-  },
-  {
-    id: '2',
-    slug: 'barbershop-kids-fun',
-    name: 'Barbershop Kids Fun',
-    logo: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=200&h=200&fit=crop',
-    address: 'Rua Lázaro Cárdenas, 309',
-    rating: 5.0,
-    distance: '1.31km',
-    isOpen: true,
-    featured: false
-  },
-  {
-    id: '3',
-    slug: 'barbearia-jubilexxx',
-    name: 'Barbearia Jubilexxx',
-    logo: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=200&h=200&fit=crop',
-    address: 'R. Aracajú, 4 - lote 03',
-    rating: 5.0,
-    distance: '1.61km',
-    isOpen: false,
-    featured: false
-  },
-  {
-    id: '4',
-    slug: 'barbearia-portes',
-    name: 'Barbearia Portes',
-    logo: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=200&h=200&fit=crop',
-    address: 'Rua Pedro Pondé, 28',
-    rating: 5.0,
-    distance: '2.05km',
-    isOpen: true,
-    featured: true
-  }
-])
-
-const loadMore = () => {
-  // Simulate loading more
-  hasMore.value = false
-}
+const visibleCount = ref(4)
 </script>
-

@@ -1,10 +1,10 @@
 <template>
   <div class="min-h-screen">
     <!-- Hero Section -->
-    <HomeHeroSection />
+    <HomeHeroSection @search="handleSearch" />
 
     <!-- Featured Carousel -->
-    <HomeFeaturedCarousel />
+    <HomeFeaturedCarousel :shops="featuredShops" :loading="loadingFeatured" />
 
     <!-- Categories -->
     <HomeCategoriesSection @select="handleCategorySelect" />
@@ -12,11 +12,11 @@
     <!-- Promo Section -->
     <HomePromoSection />
 
-    <!-- Nearby Section -->
-    <HomeNearbySection />
+    <!-- Nearby / All Barbershops -->
+    <HomeNearbySection :shops="allShops" :loading="loadingAll" />
 
     <!-- All Barbershops Grid (Desktop) -->
-    <section class="py-6 hidden lg:block">
+    <section v-if="allShops.length > 0" class="py-6 hidden lg:block">
       <div class="container-app">
         <div class="flex items-center justify-between mb-6">
           <div>
@@ -25,16 +25,16 @@
             </h2>
             <p class="text-sm text-neutral-500 mt-0.5">{{ allShops.length }} barbearias disponíveis</p>
           </div>
-          
+
           <!-- View Toggle -->
           <div class="flex items-center gap-2 p-1 rounded-xl bg-neutral-900 border border-neutral-800">
-            <button 
+            <button
               :class="['p-2 rounded-lg transition-all', viewMode === 'grid' ? 'bg-amber-500 text-black' : 'text-neutral-400 hover:text-white']"
               @click="viewMode = 'grid'"
             >
               <Icon name="lucide:layout-grid" class="w-4 h-4" />
             </button>
-            <button 
+            <button
               :class="['p-2 rounded-lg transition-all', viewMode === 'list' ? 'bg-amber-500 text-black' : 'text-neutral-400 hover:text-white']"
               @click="viewMode = 'list'"
             >
@@ -45,8 +45,8 @@
 
         <!-- Grid View -->
         <div v-if="viewMode === 'grid'" class="grid grid-cols-2 xl:grid-cols-3 gap-6">
-          <BarbershopCard 
-            v-for="shop in allShops" 
+          <BarbershopCard
+            v-for="shop in allShops"
             :key="shop.id"
             :barbershop="shop"
             @favorite="handleFavorite"
@@ -55,12 +55,23 @@
 
         <!-- List View -->
         <div v-else class="space-y-4">
-          <BarbershopCardCompact 
-            v-for="shop in allShops" 
+          <BarbershopCardCompact
+            v-for="shop in allShops"
             :key="shop.id"
             :barbershop="shop"
           />
         </div>
+      </div>
+    </section>
+
+    <!-- Empty state -->
+    <section v-if="!loadingAll && allShops.length === 0" class="py-12">
+      <div class="container-app text-center">
+        <div class="w-20 h-20 mx-auto rounded-2xl bg-neutral-800 flex items-center justify-center mb-4">
+          <Icon name="lucide:scissors" class="w-10 h-10 text-neutral-600" />
+        </div>
+        <h3 class="text-lg font-semibold text-white mb-2">Nenhuma barbearia ainda</h3>
+        <p class="text-neutral-500 text-sm">As barbearias cadastradas aparecerão aqui.</p>
       </div>
     </section>
   </div>
@@ -68,99 +79,68 @@
 
 <script setup lang="ts">
 const viewMode = ref<'grid' | 'list'>('grid')
+const loadingFeatured = ref(true)
+const loadingAll = ref(true)
+const featuredShops = ref<any[]>([])
+const allShops = ref<any[]>([])
 
-const allShops = ref([
-  {
-    id: '1',
-    slug: 'barbearia-premium',
-    name: 'Barbearia Premium',
-    logo: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=200&h=200&fit=crop',
-    coverImage: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&h=600&fit=crop',
-    address: 'Av. Barão de Maruim, 245',
-    rating: 4.9,
-    reviewCount: 127,
-    distance: '1.2km',
-    isOpen: true,
-    isFavorite: false,
-    featured: true,
-    services: ['Corte', 'Barba', 'Sobrancelha', 'Pigmentação', 'Relaxamento']
-  },
-  {
-    id: '2',
-    slug: 'barber-kings',
-    name: 'Barber Kings',
-    logo: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=200&h=200&fit=crop',
-    coverImage: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&h=600&fit=crop',
-    address: 'Rua São Cristóvão, 890',
-    rating: 4.8,
-    reviewCount: 89,
-    distance: '2.5km',
-    isOpen: true,
-    isFavorite: true,
-    featured: false,
-    services: ['Corte', 'Barba', 'Combo']
-  },
-  {
-    id: '3',
-    slug: 'classic-cuts',
-    name: 'Classic Cuts',
-    logo: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=200&h=200&fit=crop',
-    coverImage: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=800&h=600&fit=crop',
-    address: 'Praça da Bandeira, 56',
-    rating: 4.7,
-    reviewCount: 203,
-    distance: '3.1km',
-    isOpen: false,
-    isFavorite: false,
-    featured: false,
-    services: ['Corte Clássico', 'Barba Navalhada', 'Hot Towel']
-  },
-  {
-    id: '4',
-    slug: 'the-gentlemans-barber',
-    name: "The Gentleman's Barber",
-    logo: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=200&h=200&fit=crop',
-    coverImage: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=800&h=600&fit=crop',
-    address: 'Rua João Pessoa, 1024',
-    rating: 4.9,
-    reviewCount: 312,
-    distance: '0.8km',
-    isOpen: true,
-    isFavorite: false,
-    featured: true,
-    services: ['Corte', 'Barba', 'Tratamento Capilar', 'Massagem']
-  },
-  {
-    id: '5',
-    slug: 'urban-barber',
-    name: 'Urban Barber',
-    logo: 'https://images.unsplash.com/photo-1587909209111-5097ee578ec3?w=200&h=200&fit=crop',
-    coverImage: 'https://images.unsplash.com/photo-1587909209111-5097ee578ec3?w=800&h=600&fit=crop',
-    address: 'Av. Hermes Fontes, 678',
-    rating: 4.6,
-    reviewCount: 156,
-    distance: '1.9km',
-    isOpen: true,
-    isFavorite: false,
-    featured: false,
-    services: ['Corte Moderno', 'Degradê', 'Design de Barba']
-  },
-  {
-    id: '6',
-    slug: 'vintage-cuts',
-    name: 'Vintage Cuts',
-    logo: 'https://images.unsplash.com/photo-1493256338651-d82f7acb2b38?w=200&h=200&fit=crop',
-    coverImage: 'https://images.unsplash.com/photo-1493256338651-d82f7acb2b38?w=800&h=600&fit=crop',
-    address: 'Rua Laranjeiras, 432',
-    rating: 4.8,
-    reviewCount: 98,
-    distance: '2.2km',
-    isOpen: true,
-    isFavorite: true,
-    featured: false,
-    services: ['Corte Vintage', 'Pompadour', 'Side Part', 'Barba Clássica']
+// Mapear dados do banco para o formato dos cards
+const mapBarbershop = (shop: any) => ({
+  id: shop.id,
+  slug: shop.slug,
+  name: shop.name,
+  logo: shop.logo_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(shop.name) + '&background=f59e0b&color=000&size=200',
+  coverImage: shop.cover_url || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&h=600&fit=crop',
+  address: [shop.address_street, shop.address_number, shop.address_neighborhood].filter(Boolean).join(', ') || shop.address_city || 'Endereço não informado',
+  rating: Number(shop.rating_average) || 0,
+  reviewCount: shop.rating_count || 0,
+  distance: shop.distance ? `${shop.distance}km` : '',
+  isOpen: true,
+  isFavorite: false,
+  featured: shop.is_featured || false,
+  services: []
+})
+
+// Buscar barbearias em destaque
+const fetchFeatured = async () => {
+  loadingFeatured.value = true
+  try {
+    const response = await $fetch('/api/barbershops/featured') as any
+    if (response.success && response.data) {
+      featuredShops.value = response.data.map(mapBarbershop)
+    }
+  } catch {
+    // Silently fail
+  } finally {
+    loadingFeatured.value = false
   }
-])
+}
+
+// Buscar todas as barbearias
+const fetchAll = async () => {
+  loadingAll.value = true
+  try {
+    const response = await $fetch('/api/barbershops', {
+      params: { sortBy: 'newest', limit: 50 }
+    }) as any
+    if (response.success && response.data) {
+      allShops.value = response.data.map(mapBarbershop)
+      // Se não tem featured separado, usar as primeiras como featured
+      if (featuredShops.value.length === 0 && allShops.value.length > 0) {
+        featuredShops.value = allShops.value.slice(0, 4)
+      }
+    }
+  } catch {
+    // Silently fail
+  } finally {
+    loadingAll.value = false
+  }
+}
+
+// Buscar dados ao montar
+onMounted(async () => {
+  await Promise.all([fetchFeatured(), fetchAll()])
+})
 
 const handleCategorySelect = (categoryId: string) => {
   navigateTo(`/buscar?categoria=${categoryId}`)
@@ -173,6 +153,12 @@ const handleFavorite = (shopId: string) => {
   }
 }
 
+const handleSearch = (query: string) => {
+  if (query) {
+    navigateTo(`/buscar?q=${encodeURIComponent(query)}`)
+  }
+}
+
 // SEO
 useSeoMeta({
   title: 'BarberPlus - Marketplace Premium de Barbearias',
@@ -182,4 +168,3 @@ useSeoMeta({
   ogImage: '/og-image.png'
 })
 </script>
-

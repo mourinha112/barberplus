@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '~/server/utils/supabase'
+import { supabaseAdmin, isSupabaseConfigured } from '~/server/utils/supabase'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -11,15 +11,29 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Buscar ou criar link bio
-    let { data: linkBio, error } = await supabaseAdmin
+    if (!isSupabaseConfigured) {
+      return {
+        success: true,
+        data: {
+          id: 'demo-linkbio',
+          barbershop_id: barbershopId,
+          title: 'Sua Barbearia',
+          bio: '',
+          custom_slug: '',
+          links: []
+        }
+      }
+    }
+
+    // Buscar link bio existente
+    let { data: linkBio } = await supabaseAdmin
       .from('link_bio')
       .select(`
         *,
         links:link_bio_links(*)
       `)
       .eq('barbershop_id', barbershopId)
-      .single()
+      .maybeSingle()
 
     if (!linkBio) {
       // Buscar dados da barbearia para pré-popular
@@ -27,10 +41,10 @@ export default defineEventHandler(async (event) => {
         .from('barbershops')
         .select('name, slug, logo_url, phone')
         .eq('id', barbershopId)
-        .single()
+        .maybeSingle()
 
       // Criar link bio
-      const { data: newLinkBio, error: createError } = await supabaseAdmin
+      const { data: newLinkBio, error: insertError } = await supabaseAdmin
         .from('link_bio')
         .insert({
           barbershop_id: barbershopId,
@@ -44,7 +58,13 @@ export default defineEventHandler(async (event) => {
         `)
         .single()
 
-      if (createError) throw createError
+      if (insertError) {
+        console.error('Erro ao criar link bio:', insertError)
+        throw createError({
+          statusCode: 500,
+          message: 'Erro ao criar link bio'
+        })
+      }
       linkBio = newLinkBio
     }
 
@@ -59,4 +79,3 @@ export default defineEventHandler(async (event) => {
     })
   }
 })
-

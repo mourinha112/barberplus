@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '~/server/utils/supabase'
+import { supabaseAdmin, isSupabaseConfigured } from '~/server/utils/supabase'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -6,10 +6,11 @@ export default defineEventHandler(async (event) => {
     const { lat, lng, radius = 5, limit = 10 } = query
 
     if (!lat || !lng) {
-      throw createError({
-        statusCode: 400,
-        message: 'Latitude e longitude são obrigatórios'
-      })
+      return { success: true, data: [] }
+    }
+
+    if (!isSupabaseConfigured) {
+      return { success: true, data: [] }
     }
 
     const { data: barbershops, error } = await supabaseAdmin

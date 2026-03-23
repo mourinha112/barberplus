@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '~/server/utils/supabase'
+import { supabaseAdmin, isSupabaseConfigured } from '~/server/utils/supabase'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -9,6 +9,10 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
         message: 'Slug é obrigatório'
       })
+    }
+
+    if (!isSupabaseConfigured) {
+      throw createError({ statusCode: 404, message: 'Barbearia não encontrada' })
     }
 
     // Buscar barbearia com todos os relacionamentos
@@ -22,7 +26,7 @@ export default defineEventHandler(async (event) => {
       `)
       .eq('slug', slug)
       .eq('is_active', true)
-      .single()
+      .maybeSingle()
 
     if (error || !barbershop) {
       throw createError({

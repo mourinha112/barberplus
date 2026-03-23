@@ -1,4 +1,4 @@
-import { supabaseAdmin, getPagination } from '~/server/utils/supabase'
+import { supabaseAdmin, isSupabaseConfigured, getPagination } from '~/server/utils/supabase'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -15,49 +15,25 @@ export default defineEventHandler(async (event) => {
       sortBy = 'rating'
     } = query
 
+    if (!isSupabaseConfigured) {
+      return { success: true, data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } }
+    }
+
     const { from, to } = getPagination(Number(page), Number(limit))
 
     let queryBuilder = supabaseAdmin
       .from('barbershops')
-      .select(`
-        *,
-        categories:barbershop_categories(
-          category:marketplace_categories(*)
-        )
-      `, { count: 'exact' })
+      .select('*', { count: 'exact' })
       .eq('is_active', true)
 
-    // Filtro de busca
     if (search) {
       queryBuilder = queryBuilder.or(`name.ilike.%${search}%,address_neighborhood.ilike.%${search}%,address_city.ilike.%${search}%`)
     }
 
-    // Filtro de destaque
     if (featured === 'true') {
       queryBuilder = queryBuilder.eq('is_featured', true)
     }
 
-    // Filtro por categoria
-    if (category) {
-      const { data: categoryData } = await supabaseAdmin
-        .from('marketplace_categories')
-        .select('id')
-        .eq('slug', category)
-        .single()
-      
-      if (categoryData) {
-        const { data: barbershopIds } = await supabaseAdmin
-          .from('barbershop_categories')
-          .select('barbershop_id')
-          .eq('category_id', categoryData.id)
-        
-        if (barbershopIds?.length) {
-          queryBuilder = queryBuilder.in('id', barbershopIds.map(b => b.barbershop_id))
-        }
-      }
-    }
-
-    // Ordenação
     switch (sortBy) {
       case 'rating':
         queryBuilder = queryBuilder.order('rating_average', { ascending: false })
@@ -69,42 +45,33 @@ export default defineEventHandler(async (event) => {
         queryBuilder = queryBuilder.order('created_at', { ascending: false })
         break
       default:
-        queryBuilder = queryBuilder.order('rating_average', { ascending: false })
+        queryBuilder = queryBuilder.order('created_at', { ascending: false })
     }
 
-    // Paginação
     queryBuilder = queryBuilder.range(from, to)
 
     const { data: barbershops, error, count } = await queryBuilder
 
     if (error) {
-      throw createError({
-        statusCode: 500,
-        message: 'Erro ao buscar barbearias'
-      })
+      if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+        return { success: true, data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } }
+      }
+      throw createError({ statusCode: 500, message: 'Erro ao buscar barbearias' })
     }
 
-    // Calcular distância se lat/lng fornecidos
     let results = barbershops || []
     if (lat && lng) {
       results = results.map(barbershop => ({
         ...barbershop,
-        distance: calculateDistance(
-          Number(lat),
-          Number(lng),
-          Number(barbershop.latitude),
-          Number(barbershop.longitude)
-        )
+        distance: calculateDistance(Number(lat), Number(lng), Number(barbershop.latitude), Number(barbershop.longitude))
       }))
 
-      // Filtrar por raio
       if (radius) {
         results = results.filter(b => b.distance <= Number(radius))
       }
 
-      // Ordenar por distância se necessário
       if (sortBy === 'distance') {
-        results.sort((a, b) => a.distance - b.distance)
+        results.sort((a: any, b: any) => a.distance - b.distance)
       }
     }
 
@@ -126,11 +93,9 @@ export default defineEventHandler(async (event) => {
   }
 })
 
-// Função para calcular distância em km (Haversine)
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   if (!lat2 || !lon2) return 999999
-  
-  const R = 6371 // Raio da Terra em km
+  const R = 6371
   const dLat = toRad(lat2 - lat1)
   const dLon = toRad(lon2 - lon1)
   const a =
@@ -144,4 +109,3 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 function toRad(deg: number): number {
   return deg * (Math.PI / 180)
 }
-

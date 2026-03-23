@@ -78,6 +78,10 @@
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
+const emit = defineEmits<{
+  (e: 'search', query: string): void
+}>()
+
 const searchQuery = ref('')
 const showSearchSuggestions = ref(false)
 const activeFilter = ref('all')
@@ -119,6 +123,7 @@ const filteredSuggestions = computed(() => {
 const selectSuggestion = (suggestion: string) => {
   searchQuery.value = suggestion
   showSearchSuggestions.value = false
+  emit('search', suggestion)
 }
 
 // Close suggestions when clicking outside
