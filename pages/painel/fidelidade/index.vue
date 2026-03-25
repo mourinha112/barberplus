@@ -142,9 +142,15 @@
         </button>
       </div>
 
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div 
-          v-for="client in clientsNearCompletion" 
+      <div v-if="clientsNearCompletion.length === 0" class="flex flex-col items-center justify-center py-12 text-center">
+        <Icon name="lucide:users" class="w-12 h-12 text-neutral-700 mb-3" />
+        <p class="text-neutral-500">Nenhum cliente perto de completar</p>
+        <p class="text-sm text-neutral-600 mt-1">Clientes com cartão fidelidade ativo aparecerão aqui</p>
+      </div>
+
+      <div v-else class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          v-for="client in clientsNearCompletion"
           :key="client.id"
           class="p-4 rounded-xl bg-neutral-800/50 border border-neutral-700"
         >
@@ -183,8 +189,15 @@
     <!-- Recent Redemptions -->
     <div class="p-6 rounded-2xl bg-neutral-900/50 border border-neutral-800">
       <h3 class="text-lg font-semibold text-white mb-6">Resgates recentes</h3>
-      <div class="space-y-3">
-        <div 
+
+      <div v-if="recentRedemptions.length === 0" class="flex flex-col items-center justify-center py-8 text-center">
+        <Icon name="lucide:gift" class="w-12 h-12 text-neutral-700 mb-3" />
+        <p class="text-neutral-500">Nenhum resgate realizado</p>
+        <p class="text-sm text-neutral-600 mt-1">Os resgates de recompensas aparecerão aqui</p>
+      </div>
+
+      <div v-else class="space-y-3">
+        <div
           v-for="redemption in recentRedemptions" 
           :key="redemption.id"
           class="flex items-center gap-4 p-4 rounded-xl bg-neutral-800/50"
@@ -213,10 +226,10 @@ definePageMeta({
 })
 
 const stats = ref({
-  activeCards: 156,
-  completedCards: 42,
-  freeServicesGiven: 42,
-  returnRate: 78
+  activeCards: 0,
+  completedCards: 0,
+  freeServicesGiven: 0,
+  returnRate: 0
 })
 
 const programSettings = ref({
@@ -225,20 +238,9 @@ const programSettings = ref({
   validity: 'unlimited'
 })
 
-const clientsNearCompletion = ref([
-  { id: '1', name: 'João Silva', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop', points: 8, lastVisit: '20/12' },
-  { id: '2', name: 'Pedro Santos', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop', points: 9, lastVisit: '18/12' },
-  { id: '3', name: 'Lucas Oliveira', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop', points: 8, lastVisit: '15/12' },
-  { id: '4', name: 'Rafael Costa', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcabd36?w=100&h=100&fit=crop', points: 9, lastVisit: '22/12' },
-  { id: '5', name: 'Thiago Souza', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&h=100&fit=crop', points: 7, lastVisit: '10/12' },
-  { id: '6', name: 'Bruno Lima', avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&h=100&fit=crop', points: 8, lastVisit: '19/12' }
-])
+const clientsNearCompletion = ref<any[]>([])
 
-const recentRedemptions = ref([
-  { id: '1', name: 'Marcos Almeida', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop', date: '22/12/2024', reward: 'Corte grátis', value: '55' },
-  { id: '2', name: 'Felipe Dias', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop', date: '20/12/2024', reward: 'Corte grátis', value: '55' },
-  { id: '3', name: 'Gabriel Rocha', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop', date: '18/12/2024', reward: 'Corte grátis', value: '55' }
-])
+const recentRedemptions = ref<any[]>([])
 
 useSeoMeta({
   title: 'Fidelidade - Painel BarberPlus'

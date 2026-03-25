@@ -49,9 +49,15 @@
           </select>
         </div>
 
-        <div class="space-y-4">
-          <div 
-            v-for="review in reviews" 
+        <div v-if="reviews.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
+          <Icon name="lucide:message-square" class="w-12 h-12 text-neutral-700 mb-3" />
+          <p class="text-neutral-500">Nenhuma avaliação recebida</p>
+          <p class="text-sm text-neutral-600 mt-1">As avaliações dos clientes aparecerão aqui</p>
+        </div>
+
+        <div v-else class="space-y-4">
+          <div
+            v-for="review in reviews"
             :key="review.id"
             class="p-5 rounded-2xl bg-neutral-900/50 border border-neutral-800"
           >
@@ -132,9 +138,15 @@
         <!-- Professional Ratings -->
         <div class="p-6 rounded-2xl bg-neutral-900/50 border border-neutral-800">
           <h3 class="text-lg font-semibold text-white mb-4">Por Profissional</h3>
-          <div class="space-y-3">
-            <div 
-              v-for="professional in professionalRatings" 
+
+          <div v-if="professionalRatings.length === 0" class="flex flex-col items-center justify-center py-6 text-center">
+            <Icon name="lucide:users" class="w-8 h-8 text-neutral-700 mb-2" />
+            <p class="text-sm text-neutral-500">Sem avaliações por profissional</p>
+          </div>
+
+          <div v-else class="space-y-3">
+            <div
+              v-for="professional in professionalRatings"
               :key="professional.id"
               class="flex items-center gap-3 p-3 rounded-xl bg-neutral-800/50"
             >
@@ -215,76 +227,23 @@ const selectedReview = ref<any>(null)
 const replyText = ref('')
 
 const stats = ref({
-  average: 4.9,
-  total: 127,
-  thisMonth: 18,
-  responseRate: 92
+  average: 0,
+  total: 0,
+  thisMonth: 0,
+  responseRate: 0
 })
 
-const reviews = ref([
-  {
-    id: '1',
-    client: 'João Silva',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-    rating: 5,
-    date: '22/12/2024',
-    service: 'Corte + Barba',
-    professional: 'Carlos',
-    comment: 'Excelente atendimento! O Carlos é muito profissional e o corte ficou perfeito. Ambiente muito agradável e limpo. Super recomendo!',
-    verified: true,
-    reply: 'Muito obrigado, João! Foi um prazer atendê-lo. Esperamos vê-lo novamente em breve! 🙏'
-  },
-  {
-    id: '2',
-    client: 'Pedro Santos',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
-    rating: 5,
-    date: '21/12/2024',
-    service: 'Degradê',
-    professional: 'João',
-    comment: 'Melhor barbearia da cidade! Atendimento impecável e o resultado sempre supera as expectativas.',
-    verified: true,
-    reply: null
-  },
-  {
-    id: '3',
-    client: 'Lucas Oliveira',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-    rating: 4,
-    date: '20/12/2024',
-    service: 'Barba',
-    professional: 'Pedro',
-    comment: 'Muito bom! Só demorou um pouquinho mais do que o esperado, mas o resultado ficou ótimo.',
-    verified: true,
-    reply: null
-  },
-  {
-    id: '4',
-    client: 'Rafael Costa',
-    avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcabd36?w=100&h=100&fit=crop',
-    rating: 5,
-    date: '19/12/2024',
-    service: 'Combo Premium',
-    professional: 'Carlos',
-    comment: 'Serviço premium de verdade! Vale cada centavo. O combo premium inclui tudo que você precisa para sair renovado.',
-    verified: true,
-    reply: 'Obrigado pela avaliação, Rafael! O Combo Premium é realmente nosso carro-chefe. Volte sempre! 💈'
-  }
+const reviews = ref<any[]>([])
+
+const ratingBreakdown = ref([
+  { stars: 5, count: 0 },
+  { stars: 4, count: 0 },
+  { stars: 3, count: 0 },
+  { stars: 2, count: 0 },
+  { stars: 1, count: 0 }
 ])
 
-const ratingBreakdown = [
-  { stars: 5, count: 98 },
-  { stars: 4, count: 22 },
-  { stars: 3, count: 5 },
-  { stars: 2, count: 1 },
-  { stars: 1, count: 1 }
-]
-
-const professionalRatings = ref([
-  { id: '1', name: 'Carlos Silva', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop', rating: 4.9, reviews: 67 },
-  { id: '2', name: 'João Santos', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop', rating: 4.8, reviews: 38 },
-  { id: '3', name: 'Pedro Oliveira', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop', rating: 4.7, reviews: 22 }
-])
+const professionalRatings = ref<any[]>([])
 
 const openReplyModal = (review: any) => {
   selectedReview.value = review

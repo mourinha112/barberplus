@@ -26,7 +26,12 @@
         </button>
       </div>
       <div class="flex items-center gap-3">
-        <button class="flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-800 text-neutral-300 text-sm hover:bg-neutral-700 transition-colors">
+        <button
+          class="flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-800 text-neutral-300 text-sm hover:bg-neutral-700 transition-colors"
+          :class="{ 'opacity-50 cursor-not-allowed': transactions.length === 0 }"
+          :disabled="transactions.length === 0"
+          @click="exportCaixa"
+        >
           <Icon name="lucide:download" class="w-4 h-4" />
           Exportar
         </button>
@@ -92,9 +97,15 @@
           </button>
         </div>
 
-        <div class="space-y-3">
-          <div 
-            v-for="transaction in transactions" 
+        <div v-if="transactions.length === 0" class="flex flex-col items-center justify-center py-12 text-center">
+          <Icon name="lucide:inbox" class="w-12 h-12 text-neutral-700 mb-3" />
+          <p class="text-neutral-500">Nenhuma movimentação hoje</p>
+          <p class="text-sm text-neutral-600 mt-1">Clique em "Nova" para adicionar uma movimentação</p>
+        </div>
+
+        <div v-else class="space-y-3">
+          <div
+            v-for="transaction in transactions"
             :key="transaction.id"
             class="flex items-center gap-4 p-4 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
           >
@@ -157,9 +168,15 @@
         <!-- Professional Performance -->
         <div class="p-6 rounded-2xl bg-neutral-900/50 border border-neutral-800">
           <h3 class="text-lg font-semibold text-white mb-4">Por Profissional</h3>
-          <div class="space-y-3">
-            <div 
-              v-for="professional in professionalBreakdown" 
+
+          <div v-if="professionalBreakdown.length === 0" class="flex flex-col items-center justify-center py-6 text-center">
+            <Icon name="lucide:users" class="w-8 h-8 text-neutral-700 mb-2" />
+            <p class="text-sm text-neutral-500">Sem atendimentos hoje</p>
+          </div>
+
+          <div v-else class="space-y-3">
+            <div
+              v-for="professional in professionalBreakdown"
               :key="professional.id"
               class="flex items-center gap-3 p-3 rounded-xl bg-neutral-800/50"
             >
@@ -275,15 +292,7 @@ const previousDay = () => { currentDate.value = subDays(currentDate.value, 1) }
 const nextDay = () => { currentDate.value = addDays(currentDate.value, 1) }
 const goToToday = () => { currentDate.value = new Date() }
 
-const transactions = ref([
-  { id: '1', description: 'Corte + Barba - João Silva', amount: '70', type: 'income', time: '09:30', paymentMethod: 'Pix', professional: 'Carlos', commission: '35' },
-  { id: '2', description: 'Degradê - Pedro Santos', amount: '55', type: 'income', time: '10:00', paymentMethod: 'Cartão Débito', professional: 'João', commission: '27,50' },
-  { id: '3', description: 'Combo Premium - Lucas Oliveira', amount: '120', type: 'income', time: '11:00', paymentMethod: 'Pix', professional: 'Carlos', commission: '54' },
-  { id: '4', description: 'Produtos de limpeza', amount: '85', type: 'expense', time: '12:00', paymentMethod: 'Pix', professional: null, commission: null },
-  { id: '5', description: 'Barba - Rafael Costa', amount: '35', type: 'income', time: '14:00', paymentMethod: 'Dinheiro', professional: 'Pedro', commission: '14' },
-  { id: '6', description: 'Corte Social - Thiago Souza', amount: '50', type: 'income', time: '14:30', paymentMethod: 'Cartão Crédito', professional: 'João', commission: '22,50' },
-  { id: '7', description: 'Corte + Barba - Bruno Lima', amount: '70', type: 'income', time: '15:30', paymentMethod: 'Pix', professional: 'Carlos', commission: '35' }
-])
+const transactions = ref<any[]>([])
 
 const totalIncome = computed(() => transactions.value.filter(t => t.type === 'income').reduce((acc, t) => acc + parseFloat(t.amount), 0))
 const totalExpense = computed(() => transactions.value.filter(t => t.type === 'expense').reduce((acc, t) => acc + parseFloat(t.amount), 0))
@@ -291,18 +300,21 @@ const totalCommission = computed(() => transactions.value.filter(t => t.commissi
 const balance = computed(() => totalIncome.value - totalExpense.value - totalCommission.value)
 const totalAppointments = computed(() => transactions.value.filter(t => t.type === 'income' && t.professional).length)
 
-const paymentBreakdown = computed(() => [
-  { name: 'Pix', icon: 'mdi:qrcode', iconColor: 'text-emerald-500', barColor: 'bg-emerald-500', amount: 295 },
-  { name: 'Cartão Crédito', icon: 'lucide:credit-card', iconColor: 'text-blue-500', barColor: 'bg-blue-500', amount: 50 },
-  { name: 'Cartão Débito', icon: 'lucide:credit-card', iconColor: 'text-violet-500', barColor: 'bg-violet-500', amount: 55 },
-  { name: 'Dinheiro', icon: 'lucide:banknote', iconColor: 'text-amber-500', barColor: 'bg-amber-500', amount: 35 }
-])
+const paymentBreakdown = computed(() => {
+  const methods = [
+    { name: 'Pix', icon: 'mdi:qrcode', iconColor: 'text-emerald-500', barColor: 'bg-emerald-500', amount: 0 },
+    { name: 'Cartão Crédito', icon: 'lucide:credit-card', iconColor: 'text-blue-500', barColor: 'bg-blue-500', amount: 0 },
+    { name: 'Cartão Débito', icon: 'lucide:credit-card', iconColor: 'text-violet-500', barColor: 'bg-violet-500', amount: 0 },
+    { name: 'Dinheiro', icon: 'lucide:banknote', iconColor: 'text-amber-500', barColor: 'bg-amber-500', amount: 0 }
+  ]
+  transactions.value.filter(t => t.type === 'income').forEach(t => {
+    const method = methods.find(m => m.name === t.paymentMethod)
+    if (method) method.amount += parseFloat(t.amount)
+  })
+  return methods
+})
 
-const professionalBreakdown = ref([
-  { id: '1', name: 'Carlos Silva', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop', appointments: 3, revenue: 260, commission: 124 },
-  { id: '2', name: 'João Santos', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop', appointments: 2, revenue: 105, commission: 50 },
-  { id: '3', name: 'Pedro Oliveira', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop', appointments: 1, revenue: 35, commission: 14 }
-])
+const professionalBreakdown = ref<any[]>([])
 
 const newTransaction = ref({
   description: '',
@@ -313,6 +325,36 @@ const newTransaction = ref({
 
 const addTransaction = () => {
   showAddTransaction.value = false
+}
+
+const exportCaixa = () => {
+  if (transactions.value.length === 0) return
+
+  const lines = [
+    `Caixa do Dia - ${formattedDate.value}`,
+    '',
+    'RESUMO',
+    `Entradas;R$ ${totalIncome.value.toLocaleString('pt-BR')}`,
+    `Saídas;R$ ${totalExpense.value.toLocaleString('pt-BR')}`,
+    `Comissões;R$ ${totalCommission.value.toLocaleString('pt-BR')}`,
+    `Saldo;R$ ${balance.value.toLocaleString('pt-BR')}`,
+    `Atendimentos;${totalAppointments.value}`,
+    '',
+    'MOVIMENTAÇÕES',
+    'Descrição;Valor;Tipo;Horário;Pagamento;Profissional;Comissão',
+    ...transactions.value.map(t =>
+      `${t.description};R$ ${t.amount};${t.type === 'income' ? 'Entrada' : 'Saída'};${t.time};${t.paymentMethod};${t.professional || '-'};${t.commission ? 'R$ ' + t.commission : '-'}`
+    )
+  ]
+
+  const csvContent = lines.join('\n')
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `caixa-${format(currentDate.value, 'yyyy-MM-dd')}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 useSeoMeta({
