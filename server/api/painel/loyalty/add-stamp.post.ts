@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '~/server/utils/supabase'
+import { requireFeature } from '~/server/utils/subscription'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -11,6 +12,8 @@ export default defineEventHandler(async (event) => {
         message: 'IDs obrigatórios'
       })
     }
+
+    await requireFeature(barbershopId as string, 'fidelidade')
 
     // Buscar programa
     const { data: program } = await supabaseAdmin

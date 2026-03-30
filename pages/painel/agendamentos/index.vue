@@ -611,6 +611,12 @@ const getStatusLabel = (status: string) => {
   return labels[status] || 'Pendente'
 }
 
+// Open modal if navigated with ?novo=true
+const route = useRoute()
+if (route.query.novo === 'true') {
+  openNewAppointmentModal()
+}
+
 // Watch date changes to refetch
 watch(currentDateStr, () => {
   fetchAppointments()

@@ -19,7 +19,7 @@ CREATE TYPE transaction_type AS ENUM ('income', 'expense', 'commission', 'deposi
 CREATE TYPE queue_status AS ENUM ('waiting', 'called', 'in_service', 'completed', 'cancelled');
 CREATE TYPE day_of_week AS ENUM ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday');
 CREATE TYPE automation_trigger AS ENUM ('appointment_created', 'appointment_reminder', 'appointment_confirmed', 'appointment_cancelled', 'review_request', 'birthday', 'loyalty_reward', 'welcome');
-CREATE TYPE subscription_plan AS ENUM ('free', 'basic', 'professional', 'enterprise');
+CREATE TYPE subscription_plan AS ENUM ('free', 'basic', 'professional', 'pro', 'enterprise');
 
 -- =====================================================
 -- TABELA: USERS (Usuários do sistema)
@@ -80,6 +80,8 @@ CREATE TABLE barbershops (
     -- Configurações
     subscription_plan subscription_plan DEFAULT 'free',
     subscription_expires_at TIMESTAMP WITH TIME ZONE,
+    asaas_customer_id TEXT,
+    asaas_subscription_id TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     is_featured BOOLEAN DEFAULT FALSE,
     

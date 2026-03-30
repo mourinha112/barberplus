@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '~/server/utils/supabase'
+import { requireFeature } from '~/server/utils/subscription'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -11,6 +12,8 @@ export default defineEventHandler(async (event) => {
         message: 'Dados obrigatórios incompletos'
       })
     }
+
+    await requireFeature(barbershopId as string, 'whatsapp')
 
     const { data: barbershop, error } = await supabaseAdmin
       .from('barbershops')

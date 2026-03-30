@@ -245,6 +245,7 @@
             <button
               v-if="currentBarbershop"
               class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 text-black font-semibold text-sm hover:bg-amber-400 transition-colors"
+              @click="navigateTo('/painel/agendamentos?novo=true')"
             >
               <Icon name="lucide:plus" class="w-4 h-4" />
               Novo Agendamento
@@ -454,6 +455,7 @@ const managementNavItems = [
 const systemNavItems = [
   { path: '/painel/whatsapp', icon: 'mdi:whatsapp', label: 'WhatsApp Bot' },
   { path: '/painel/link-bio', icon: 'lucide:link', label: 'Link Bio' },
+  { path: '/painel/planos', icon: 'lucide:crown', label: 'Planos' },
   { path: '/painel/configuracoes', icon: 'lucide:settings', label: 'Configurações' }
 ]
 
@@ -478,6 +480,7 @@ const pageTitle = computed(() => {
     '/painel/avaliacoes': 'Avaliações',
     '/painel/whatsapp': 'WhatsApp Bot',
     '/painel/link-bio': 'Link Bio',
+    '/painel/planos': 'Planos',
     '/painel/configuracoes': 'Configurações'
   }
   return titles[route.path] || 'Painel'

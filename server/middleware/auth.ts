@@ -7,7 +7,8 @@ export default defineEventHandler(async (event) => {
     '/api/auth/me',
     '/api/marketplace',
     '/api/barbershops',
-    '/api/link-bio'
+    '/api/link-bio',
+    '/api/webhooks'
   ]
 
   const path = event.path || ''

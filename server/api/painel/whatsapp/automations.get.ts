@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '~/server/utils/supabase'
+import { requireFeature } from '~/server/utils/subscription'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -10,6 +11,8 @@ export default defineEventHandler(async (event) => {
         message: 'ID da barbearia é obrigatório'
       })
     }
+
+    await requireFeature(barbershopId as string, 'whatsapp')
 
     const { data: automations, error } = await supabaseAdmin
       .from('whatsapp_automations')

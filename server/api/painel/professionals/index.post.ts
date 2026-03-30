@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '~/server/utils/supabase'
+import { checkProfessionalLimit } from '~/server/utils/subscription'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -21,6 +22,9 @@ export default defineEventHandler(async (event) => {
         message: 'Nome e ID da barbearia são obrigatórios'
       })
     }
+
+    // Verificar limite de profissionais do plano
+    await checkProfessionalLimit(barbershopId as string)
 
     // Buscar maior sort_order
     const { data: lastProfessional } = await supabaseAdmin

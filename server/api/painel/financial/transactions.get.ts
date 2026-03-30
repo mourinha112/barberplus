@@ -1,4 +1,5 @@
 import { supabaseAdmin, getPagination } from '~/server/utils/supabase'
+import { requireFeature } from '~/server/utils/subscription'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -18,6 +19,9 @@ export default defineEventHandler(async (event) => {
         statusCode: 400,
         message: 'ID da barbearia é obrigatório'
       })
+    }
+
+    await requireFeature(barbershopId as string, 'financeiro')
     }
 
     const { from, to } = getPagination(Number(page), Number(limit))

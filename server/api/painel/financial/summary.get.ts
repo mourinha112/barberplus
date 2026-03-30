@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '~/server/utils/supabase'
+import { requireFeature } from '~/server/utils/subscription'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -11,6 +12,8 @@ export default defineEventHandler(async (event) => {
         message: 'ID da barbearia é obrigatório'
       })
     }
+
+    await requireFeature(barbershopId as string, 'financeiro')
 
     const today = new Date().toISOString().split('T')[0]
     const start = startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]

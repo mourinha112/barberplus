@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '~/server/utils/supabase'
+import { requireFeature } from '~/server/utils/subscription'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -20,6 +21,8 @@ export default defineEventHandler(async (event) => {
         message: 'Tipo, valor e ID da barbearia são obrigatórios'
       })
     }
+
+    await requireFeature(barbershopId as string, 'financeiro')
 
     const { data: transaction, error } = await supabaseAdmin
       .from('transactions')

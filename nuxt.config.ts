@@ -37,7 +37,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     supabaseUrl: process.env.SUPABASE_URL || '',
     supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY || '',
-    jwtSecret: process.env.JWT_SECRET || 'barberplus-demo-secret-2024'
+    jwtSecret: process.env.JWT_SECRET || 'barberplus-demo-secret-2024',
+    asaasApiKey: process.env.ASAAS_API_KEY || '',
+    asaasSandbox: process.env.ASAAS_SANDBOX || 'true',
   },
 
   compatibilityDate: '2024-12-22'

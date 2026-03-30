@@ -158,8 +158,16 @@ export const useApi = () => {
     deleteLinkBioLink: (id: string) => 
       del(`/api/painel/link-bio/links/${id}`),
 
+    // Assinatura / Planos
+    getSubscription: (params?: any) =>
+      get('/api/painel/subscription', { barbershopId: currentBarbershop.value?.id, ...params }),
+    subscribe: (data: any) =>
+      post('/api/painel/subscription/subscribe', { barbershopId: currentBarbershop.value?.id, ...data }),
+    cancelSubscription: () =>
+      post('/api/painel/subscription/cancel', { barbershopId: currentBarbershop.value?.id }),
+
     // Configurações
-    getSettings: () => 
+    getSettings: () =>
       get('/api/painel/settings', { barbershopId: currentBarbershop.value?.id }),
     updateSettings: (data: any) => 
       patch('/api/painel/settings', { barbershopId: currentBarbershop.value?.id, ...data }),
