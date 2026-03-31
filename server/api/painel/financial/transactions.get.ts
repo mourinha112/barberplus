@@ -22,7 +22,6 @@ export default defineEventHandler(async (event) => {
     }
 
     await requireFeature(barbershopId as string, 'financeiro')
-    }
 
     const { from, to } = getPagination(Number(page), Number(limit))
 

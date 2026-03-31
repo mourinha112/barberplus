@@ -21,7 +21,6 @@ export default defineEventHandler(async (event) => {
     }
 
     await requireFeature(barbershopId as string, 'avaliacoes')
-    }
 
     const { from, to } = getPagination(Number(page), Number(limit))
 
