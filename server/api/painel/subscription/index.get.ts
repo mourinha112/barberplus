@@ -22,18 +22,24 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const { data: barbershop } = await supabaseAdmin
+    // Primeiro buscar apenas campos que sempre existem para validar acesso
+    const { data: barbershop, error: barbershopError } = await supabaseAdmin
       .from('barbershops')
-      .select('id, owner_id, subscription_plan, subscription_expires_at, asaas_customer_id, asaas_subscription_id')
+      .select('*')
       .eq('id', barbershopId)
       .maybeSingle()
+
+    if (barbershopError) {
+      console.error('Erro ao buscar barbearia:', barbershopError)
+      throw createError({ statusCode: 500, message: 'Erro ao buscar barbearia' })
+    }
 
     if (!barbershop || barbershop.owner_id !== userId) {
       throw createError({ statusCode: 403, message: 'Acesso negado' })
     }
 
     const plan = barbershop.subscription_plan || 'free'
-    const expiresAt = barbershop.subscription_expires_at
+    const expiresAt = barbershop.subscription_expires_at || null
     const isExpired = expiresAt && new Date(expiresAt) < new Date()
 
     return {

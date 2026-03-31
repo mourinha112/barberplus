@@ -15,11 +15,16 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 500, message: 'Banco de dados não configurado' })
     }
 
-    const { data: barbershop } = await supabaseAdmin
+    const { data: barbershop, error: barbershopError } = await supabaseAdmin
       .from('barbershops')
-      .select('id, owner_id, asaas_subscription_id, subscription_plan')
+      .select('*')
       .eq('id', barbershopId)
       .maybeSingle()
+
+    if (barbershopError) {
+      console.error('Erro ao buscar barbearia:', barbershopError)
+      throw createError({ statusCode: 500, message: 'Erro ao buscar barbearia' })
+    }
 
     if (!barbershop || barbershop.owner_id !== userId) {
       throw createError({ statusCode: 403, message: 'Acesso negado' })
