@@ -40,16 +40,18 @@ export default defineEventHandler(async (event) => {
 
     const plan = barbershop.subscription_plan || 'free'
     const expiresAt = barbershop.subscription_expires_at || null
-    const isExpired = expiresAt && new Date(expiresAt) < new Date()
+    const isPending = plan !== 'free' && !expiresAt
+    const isExpired = plan !== 'free' && !!expiresAt && new Date(expiresAt) < new Date()
+    const effectivePlan = (isPending || isExpired) ? 'free' : plan
 
     return {
       success: true,
       data: {
-        plan,
-        status: plan === 'free' ? 'active' : (isExpired ? 'expired' : 'active'),
+        plan: effectivePlan,
+        status: isPending ? 'pending' : (isExpired ? 'expired' : 'active'),
         currentPeriodEnd: expiresAt,
         asaasSubscriptionId: barbershop.asaas_subscription_id || null,
-        planDetails: PLANS[plan as keyof typeof PLANS] || PLANS.free,
+        planDetails: PLANS[effectivePlan as keyof typeof PLANS] || PLANS.free,
       }
     }
   } catch (error: any) {

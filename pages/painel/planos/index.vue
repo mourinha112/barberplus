@@ -376,12 +376,13 @@ const subscribe = async () => {
 
     if (res.success) {
       showCpfModal.value = false
-      currentPlan.value = res.data.plan
 
       if (res.data.invoiceUrl) {
         window.open(res.data.invoiceUrl, '_blank')
         successMessage.value = 'Assinatura criada! Complete o pagamento na nova aba.'
       } else {
+        // Modo demo: plano ativado imediatamente
+        currentPlan.value = res.data.plan
         successMessage.value = res.data.message || 'Plano ativado com sucesso!'
       }
 
