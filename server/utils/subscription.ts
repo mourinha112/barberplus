@@ -32,7 +32,7 @@ export async function getSubscriptionInfo(barbershopId: string): Promise<Subscri
   const plan = (barbershop?.subscription_plan || 'free') as PlanKey
   const planInfo = PLANS[plan] || PLANS.free
   const expiresAt = barbershop?.subscription_expires_at
-  const isExpired = plan !== 'free' && !!expiresAt && new Date(expiresAt) < new Date()
+  const isExpired = plan !== 'free' && (!expiresAt || new Date(expiresAt) < new Date())
 
   // Se expirou, volta a ter features do free
   const effectivePlan = isExpired ? PLANS.free : planInfo
