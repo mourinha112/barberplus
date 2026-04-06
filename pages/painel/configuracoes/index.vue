@@ -47,7 +47,7 @@
                   </div>
                   <button
                     class="absolute -bottom-2 -right-2 p-2 rounded-full bg-amber-500 text-black hover:bg-amber-400 transition-colors shadow-lg"
-                    @click="openLogoUpload"
+                    @click="logoInputRef?.click()"
                   >
                     <Icon name="lucide:camera" class="w-4 h-4" />
                   </button>
@@ -56,17 +56,17 @@
                     type="file"
                     accept="image/*"
                     class="hidden"
-                    @change="handleLogoUpload"
+                    @change="handleImageUpload($event, 'logo')"
                   />
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 space-y-2">
+                  <p class="text-xs text-neutral-500">Clique na câmera para enviar do dispositivo ou cole uma URL abaixo:</p>
                   <input
                     v-model="settings.logoUrl"
                     type="url"
-                    placeholder="Cole a URL do logo"
+                    placeholder="https://exemplo.com/logo.png"
                     class="w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700 text-white placeholder-neutral-500 focus:border-amber-500/50 focus:outline-none text-sm"
                   />
-                  <p class="text-xs text-neutral-500 mt-2">Tamanho recomendado: 200x200px</p>
                 </div>
               </div>
             </div>
@@ -76,15 +76,15 @@
               <label class="block text-sm text-neutral-400 mb-3">Imagem de Capa</label>
               <div
                 class="relative h-32 rounded-xl bg-neutral-800 border border-neutral-700 overflow-hidden group cursor-pointer"
-                @click="openCoverUpload"
+                @click="coverInputRef?.click()"
               >
                 <template v-if="settings.coverUrl">
                   <img :src="settings.coverUrl" alt="Capa" class="w-full h-full object-cover" />
                 </template>
                 <template v-else>
                   <div class="w-full h-full flex flex-col items-center justify-center">
-                    <Icon name="lucide:image" class="w-10 h-10 text-neutral-600 mb-2" />
-                    <span class="text-xs text-neutral-500">Adicionar capa</span>
+                    <Icon name="lucide:upload" class="w-10 h-10 text-neutral-600 mb-2" />
+                    <span class="text-sm text-neutral-500">Clique para enviar imagem de capa</span>
                   </div>
                 </template>
                 <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -96,12 +96,12 @@
                 type="file"
                 accept="image/*"
                 class="hidden"
-                @change="handleCoverUpload"
+                @change="handleImageUpload($event, 'cover')"
               />
               <input
                 v-model="settings.coverUrl"
                 type="url"
-                placeholder="Cole a URL da capa"
+                placeholder="https://exemplo.com/capa.png"
                 class="w-full mt-3 px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700 text-white placeholder-neutral-500 focus:border-amber-500/50 focus:outline-none text-sm"
               />
             </div>
@@ -660,35 +660,64 @@ const fetchSettings = async () => {
 
 watch(() => currentBarbershop.value?.id, fetchSettings, { immediate: true })
 
-// File upload handlers
-const openLogoUpload = () => {
-  logoInputRef.value?.click()
-}
-
-const openCoverUpload = () => {
-  coverInputRef.value?.click()
-}
-
-const handleLogoUpload = async (event: Event) => {
+// File upload handler - converte imagem para base64 e envia via API
+const handleImageUpload = async (event: Event, type: 'logo' | 'cover') => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
 
-  try {
-    const result = await painel.addGalleryImage({ file, type: 'logo' }) as any
-    if (result.success && result.data?.url) {
-      settings.value.logoUrl = result.data.url
-      showSaveMessage('Logo enviado com sucesso!', true)
-    }
-  } catch (error: any) {
-    showSaveMessage(error.data?.message || 'Erro ao enviar logo', false)
+  // Validar tamanho (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    showSaveMessage('Imagem muito grande. Máximo 5MB.', false)
+    input.value = ''
+    return
   }
 
-  // Reset input so the same file can be selected again
+  // Converter para base64 para preview imediato
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    const base64 = e.target?.result as string
+
+    // Preview imediato
+    if (type === 'logo') {
+      settings.value.logoUrl = base64
+    } else {
+      settings.value.coverUrl = base64
+    }
+
+    // Tentar upload via API
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', type)
+      formData.append('barbershopId', currentBarbershop.value?.id || '')
+
+      const result = await $fetch('/api/painel/settings/upload', {
+        method: 'POST',
+        headers: authHeaders.value,
+        body: formData
+      }) as any
+
+      if (result.success && result.data?.url) {
+        if (type === 'logo') {
+          settings.value.logoUrl = result.data.url
+        } else {
+          settings.value.coverUrl = result.data.url
+        }
+        showSaveMessage(`${type === 'logo' ? 'Logo' : 'Capa'} enviado com sucesso!`, true)
+      }
+    } catch {
+      // Upload falhou mas preview base64 continua visível
+      // O base64 será salvo como URL temporária ao clicar Salvar
+      showSaveMessage(`Imagem carregada! Clique "Salvar" para aplicar.`, true)
+    }
+  }
+  reader.readAsDataURL(file)
   input.value = ''
 }
 
-const handleCoverUpload = async (event: Event) => {
+// Placeholder para manter compatibilidade - não usado mais
+const handleCoverUpload_legacy = async (event: Event) => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
