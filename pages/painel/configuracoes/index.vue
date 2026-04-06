@@ -122,7 +122,7 @@
             <div>
               <label class="block text-sm text-neutral-400 mb-2">Slug (URL) *</label>
               <div class="flex items-center">
-                <span class="px-4 py-3 rounded-l-xl bg-neutral-700 text-neutral-400 text-sm border border-r-0 border-neutral-700">barberplus.com/</span>
+                <span class="px-4 py-3 rounded-l-xl bg-neutral-700 text-neutral-400 text-sm border border-r-0 border-neutral-700">barberplus.com/barbearia/</span>
                 <input
                   v-model="settings.slug"
                   type="text"
@@ -271,7 +271,7 @@
               <p class="text-sm text-neutral-400 mt-1">Compartilhe este link com seus clientes para agendamentos</p>
               <div class="mt-3 flex items-center gap-2">
                 <code class="px-4 py-2 rounded-xl bg-neutral-800 text-amber-400 text-sm font-mono">
-                  barberplus.com/{{ settings.slug || 'sua-barbearia' }}
+                  barberplus.com/barbearia/{{ settings.slug || 'sua-barbearia' }}
                 </code>
                 <button
                   class="p-2 rounded-lg bg-amber-500 text-black hover:bg-amber-400 transition-colors"
@@ -287,7 +287,7 @@
                 QR Code
               </button>
               <NuxtLink
-                :to="`/${settings.slug}`"
+                :to="`/barbearia/${settings.slug}`"
                 target="_blank"
                 class="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 transition-colors"
               >
@@ -726,7 +726,7 @@ const fetchAddress = async () => {
 
 // Copy public link to clipboard
 const copyLink = async () => {
-  const link = `https://barberplus.com/${settings.value.slug}`
+  const link = `${window.location.origin}/barbearia/${settings.value.slug}`
   try {
     await navigator.clipboard.writeText(link)
     linkCopied.value = true
@@ -754,10 +754,10 @@ const saveWorkingHours = async () => {
   savingHours.value = true
   try {
     const workingHours = settings.value.hours.map(h => ({
-      day: h.day,
-      active: h.active,
-      open: h.open,
-      close: h.close
+      dayOfWeek: h.day,
+      openTime: h.open,
+      closeTime: h.close,
+      isClosed: !h.active
     }))
     await painel.saveWorkingHours(workingHours)
     showSaveMessage('Horarios salvos com sucesso!', true)
@@ -811,10 +811,10 @@ const saveSettings = async () => {
 
     // Also save working hours
     const workingHours = settings.value.hours.map(h => ({
-      day: h.day,
-      active: h.active,
-      open: h.open,
-      close: h.close
+      dayOfWeek: h.day,
+      openTime: h.open,
+      closeTime: h.close,
+      isClosed: !h.active
     }))
     await painel.saveWorkingHours(workingHours)
 
