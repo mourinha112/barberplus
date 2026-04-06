@@ -84,7 +84,8 @@ CREATE TABLE barbershops (
     asaas_subscription_id TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     is_featured BOOLEAN DEFAULT FALSE,
-    
+    manually_closed BOOLEAN DEFAULT FALSE,
+
     -- Sistema Anti-Falta
     anti_fault_enabled BOOLEAN DEFAULT FALSE,
     anti_fault_deposit_amount DECIMAL(10, 2) DEFAULT 0,

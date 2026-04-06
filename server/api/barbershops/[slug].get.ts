@@ -64,8 +64,8 @@ export default defineEventHandler(async (event) => {
       .order('created_at', { ascending: false })
       .limit(10)
 
-    // Verificar se está aberto
-    const isOpen = checkIfOpen(barbershop.working_hours)
+    // Verificar se está aberto (considerar fechamento manual)
+    const isOpen = barbershop.manually_closed ? false : checkIfOpen(barbershop.working_hours)
 
     return {
       success: true,

@@ -225,21 +225,25 @@ const toggleShopStatus = async () => {
 
   togglingShop.value = true
   try {
-    const newStatus = !shopOpen.value
+    const willClose = shopOpen.value // se está aberto, vai fechar
     await $fetch(`/api/painel/barbershop/${currentBarbershop.value.id}`, {
       method: 'PATCH',
       headers: authHeaders.value,
       body: {
         barbershopId: currentBarbershop.value.id,
-        isActive: newStatus
+        manuallyClosed: willClose
       }
     })
-    shopOpen.value = newStatus
+    shopOpen.value = !willClose
+    // Atualizar o objeto da barbearia em memória
+    if (currentBarbershop?.value) {
+      currentBarbershop.value.manually_closed = willClose
+    }
     toast.add({
-      title: newStatus ? 'Barbearia aberta!' : 'Barbearia fechada',
-      description: newStatus ? 'Clientes podem ver e agendar' : 'Sua barbearia não está visível',
-      icon: newStatus ? 'i-lucide-door-open' : 'i-lucide-door-closed',
-      color: newStatus ? 'green' : 'red'
+      title: !willClose ? 'Barbearia aberta!' : 'Barbearia fechada',
+      description: !willClose ? 'Clientes podem ver e agendar' : 'Sua barbearia aparece como fechada',
+      icon: !willClose ? 'i-lucide-door-open' : 'i-lucide-door-closed',
+      color: !willClose ? 'green' : 'red'
     })
   } catch {
     toast.add({ title: 'Erro ao alterar status', icon: 'i-lucide-alert-circle', color: 'red' })
@@ -263,7 +267,7 @@ const upcomingAppointments = ref<any[]>([])
 // Buscar dados quando tiver barbearia selecionada
 watch(currentBarbershop, async (barbershop) => {
   if (barbershop?.id) {
-    shopOpen.value = barbershop.is_active !== false
+    shopOpen.value = !barbershop.manually_closed
     await Promise.all([fetchStats(), fetchUpcomingAppointments()])
   }
 }, { immediate: true })
