@@ -85,24 +85,28 @@ export default defineEventHandler(async (event) => {
   }
 })
 
-// Verificar se está aberto
+// Verificar se está aberto baseado nos horários configurados
 function checkIfOpen(workingHours: any[]): boolean {
-  if (!workingHours?.length) return false
+  // Se não tem horários configurados, considera aberto (dono não configurou ainda)
+  if (!workingHours?.length) return true
 
   const now = new Date()
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
   const today = days[now.getDay()]
 
   const todayHours = workingHours.find(wh => wh.day_of_week === today)
-  if (!todayHours || todayHours.is_closed) return false
+
+  // Se não tem horário para hoje ou está marcado como fechado
+  if (!todayHours) return true // dia não configurado = aberto
+  if (todayHours.is_closed) return false
 
   const currentTime = now.toTimeString().slice(0, 5)
   const openTime = todayHours.open_time?.slice(0, 5)
   const closeTime = todayHours.close_time?.slice(0, 5)
 
-  if (!openTime || !closeTime) return false
+  if (!openTime || !closeTime) return true
 
-  // Verificar intervalo
+  // Verificar intervalo/pausa
   if (todayHours.break_start && todayHours.break_end) {
     const breakStart = todayHours.break_start.slice(0, 5)
     const breakEnd = todayHours.break_end.slice(0, 5)
