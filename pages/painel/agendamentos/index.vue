@@ -60,7 +60,7 @@
           </div>
           <div>
             <p class="text-xl font-bold text-emerald-400">{{ dayStats.completed }}</p>
-            <p class="text-xs text-neutral-500">Concluídos</p>
+            <p class="text-xs text-neutral-500">Concluidos</p>
           </div>
         </div>
         <div class="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800 flex items-center gap-3">
@@ -98,7 +98,7 @@
           <Icon name="lucide:calendar" class="w-10 h-10 text-neutral-600" />
         </div>
         <h3 class="text-lg font-semibold text-white mb-2">Nenhum agendamento</h3>
-        <p class="text-neutral-500 mb-6">Não há agendamentos para este dia.</p>
+        <p class="text-neutral-500 mb-6">Nao ha agendamentos para este dia.</p>
         <button
           class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition-colors"
           @click="openNewAppointmentModal"
@@ -148,8 +148,8 @@
                   {{ getStatusLabel(apt.status) }}
                 </span>
               </div>
-              <p class="text-sm font-medium text-white mb-1">{{ apt.client?.name || 'Cliente não informado' }}</p>
-              <p class="text-xs text-neutral-500 mb-2">{{ apt.services?.map((s: any) => s.service_name).join(', ') || 'Serviço' }}</p>
+              <p class="text-sm font-medium text-white mb-1">{{ apt.client?.name || 'Cliente nao informado' }}</p>
+              <p class="text-xs text-neutral-500 mb-2">{{ apt.services?.map((s: any) => s.service_name).join(', ') || 'Servico' }}</p>
               <div class="flex items-center justify-between">
                 <span class="text-xs text-amber-400 font-medium">R$ {{ Number(apt.total_price || 0).toFixed(2).replace('.', ',') }}</span>
                 <div class="flex items-center gap-1">
@@ -157,7 +157,7 @@
                     v-if="apt.status === 'pending' || apt.status === 'confirmed'"
                     class="p-1 rounded hover:bg-neutral-700 transition-colors"
                     @click.stop="updateStatus(apt.id, 'completed')"
-                    title="Marcar como concluído"
+                    title="Marcar como concluido"
                   >
                     <Icon name="lucide:check" class="w-4 h-4 text-emerald-500" />
                   </button>
@@ -210,14 +210,14 @@
               v-model="appointmentForm.professionalId"
               required
               class="w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700 text-white focus:border-amber-500/50 focus:outline-none"
-              @change="fetchAvailableSlots"
+              @change="onFormChangeForSlots"
             >
               <option value="">Selecione...</option>
               <option v-for="p in professionalsList" :key="p.id" :value="p.id">{{ p.name }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm text-neutral-400 mb-2">Serviços *</label>
+            <label class="block text-sm text-neutral-400 mb-2">Servicos *</label>
             <div class="space-y-2 max-h-40 overflow-y-auto">
               <label
                 v-for="s in servicesList"
@@ -229,14 +229,14 @@
                   :value="s.id"
                   v-model="appointmentForm.services"
                   class="w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-amber-500 focus:ring-amber-500"
-                  @change="fetchAvailableSlots"
+                  @change="onFormChangeForSlots"
                 />
                 <span class="text-sm text-neutral-300 flex-1">{{ s.name }}</span>
                 <span class="text-sm text-amber-400">R$ {{ Number(s.promotional_price || s.price).toFixed(2).replace('.', ',') }}</span>
                 <span class="text-xs text-neutral-500">{{ s.duration_minutes }}min</span>
               </label>
             </div>
-            <p v-if="servicesList.length === 0" class="text-sm text-neutral-500">Nenhum serviço cadastrado</p>
+            <p v-if="servicesList.length === 0" class="text-sm text-neutral-500">Nenhum servico cadastrado</p>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -246,11 +246,11 @@
                 type="date"
                 required
                 class="w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700 text-white focus:border-amber-500/50 focus:outline-none"
-                @change="fetchAvailableSlots"
+                @change="onFormChangeForSlots"
               />
             </div>
             <div>
-              <label class="block text-sm text-neutral-400 mb-2">Horário *</label>
+              <label class="block text-sm text-neutral-400 mb-2">Horario *</label>
               <select
                 v-model="appointmentForm.startTime"
                 required
@@ -259,16 +259,16 @@
                 <option value="">Selecione...</option>
                 <option v-for="slot in availableSlots" :key="slot" :value="slot">{{ slot }}</option>
               </select>
-              <p v-if="loadingSlots" class="text-xs text-neutral-500 mt-1">Carregando horários...</p>
-              <p v-else-if="appointmentForm.professionalId && appointmentForm.date && availableSlots.length === 0" class="text-xs text-red-400 mt-1">Nenhum horário disponível</p>
+              <p v-if="loadingSlots" class="text-xs text-neutral-500 mt-1">Carregando horarios...</p>
+              <p v-else-if="appointmentForm.professionalId && appointmentForm.date && availableSlots.length === 0" class="text-xs text-red-400 mt-1">Nenhum horario disponivel</p>
             </div>
           </div>
           <div>
-            <label class="block text-sm text-neutral-400 mb-2">Observações</label>
+            <label class="block text-sm text-neutral-400 mb-2">Observacoes</label>
             <textarea
               v-model="appointmentForm.clientNotes"
               rows="2"
-              placeholder="Observações sobre o agendamento..."
+              placeholder="Observacoes sobre o agendamento..."
               class="w-full px-4 py-3 rounded-xl bg-neutral-800 border border-neutral-700 text-white placeholder-neutral-500 focus:border-amber-500/50 focus:outline-none resize-none"
             />
           </div>
@@ -308,7 +308,8 @@ definePageMeta({
   layout: 'painel'
 })
 
-const { currentBarbershop, authHeaders } = useAuth()
+const { currentBarbershop } = useAuth()
+const api = useApi()
 
 const currentDate = ref(new Date())
 const loading = ref(true)
@@ -396,16 +397,11 @@ const fetchAppointments = async () => {
 
   loading.value = true
   try {
-    const response = await $fetch<any>('/api/painel/appointments', {
-      query: {
-        barbershopId: currentBarbershop.value.id,
-        date: currentDateStr.value
-      },
-      headers: authHeaders.value
-    })
-
+    const response = await api.painel.getAppointments({ date: currentDateStr.value })
     if (response.success) {
       appointments.value = response.data || []
+    } else {
+      appointments.value = []
     }
   } catch (error) {
     console.error('Erro ao buscar agendamentos:', error)
@@ -419,10 +415,7 @@ const fetchAppointments = async () => {
 const fetchProfessionals = async () => {
   if (!currentBarbershop.value?.id) return
   try {
-    const response = await $fetch<any>('/api/painel/professionals', {
-      query: { barbershopId: currentBarbershop.value.id },
-      headers: authHeaders.value
-    })
+    const response = await api.painel.getProfessionals()
     if (response.success) {
       professionalsList.value = response.data || []
     }
@@ -435,10 +428,7 @@ const fetchProfessionals = async () => {
 const fetchClients = async () => {
   if (!currentBarbershop.value?.id) return
   try {
-    const response = await $fetch<any>('/api/painel/clients', {
-      query: { barbershopId: currentBarbershop.value.id },
-      headers: authHeaders.value
-    })
+    const response = await api.painel.getClients()
     if (response.success) {
       clientsList.value = response.data || []
     }
@@ -451,15 +441,12 @@ const fetchClients = async () => {
 const fetchServices = async () => {
   if (!currentBarbershop.value?.id) return
   try {
-    const response = await $fetch<any>('/api/painel/services', {
-      query: { barbershopId: currentBarbershop.value.id },
-      headers: authHeaders.value
-    })
+    const response = await api.painel.getServices()
     if (response.success) {
       servicesList.value = (response.data || []).filter((s: any) => s.is_active !== false)
     }
   } catch (error) {
-    console.error('Erro ao buscar serviços:', error)
+    console.error('Erro ao buscar servicos:', error)
   }
 }
 
@@ -476,24 +463,28 @@ const fetchAvailableSlots = async () => {
     .reduce((acc, s) => acc + (s.duration_minutes || 30), 0) || 30
 
   loadingSlots.value = true
+  appointmentForm.value.startTime = ''
   try {
-    const response = await $fetch<any>('/api/painel/appointments/available-slots', {
-      query: {
-        barbershopId: currentBarbershop.value.id,
-        professionalId,
-        date,
-        duration: totalDuration
-      },
-      headers: authHeaders.value
+    const response = await api.painel.getAvailableSlots({
+      professionalId,
+      date,
+      duration: totalDuration
     })
     if (response.success) {
       availableSlots.value = response.data || []
+    } else {
+      availableSlots.value = []
     }
   } catch {
     availableSlots.value = []
   } finally {
     loadingSlots.value = false
   }
+}
+
+// Handler for form changes that should trigger slot refetch
+const onFormChangeForSlots = () => {
+  fetchAvailableSlots()
 }
 
 // Open new appointment modal
@@ -521,7 +512,7 @@ const saveAppointment = async () => {
 
   const { professionalId, services, date, startTime } = appointmentForm.value
   if (!professionalId || !services.length || !date || !startTime) {
-    formError.value = 'Preencha todos os campos obrigatórios'
+    formError.value = 'Preencha todos os campos obrigatorios'
     return
   }
 
@@ -529,24 +520,23 @@ const saveAppointment = async () => {
   saving.value = true
 
   try {
-    await $fetch('/api/painel/appointments', {
-      method: 'POST',
-      body: {
-        barbershopId: currentBarbershop.value.id,
-        clientId: appointmentForm.value.clientId || null,
-        professionalId,
-        date,
-        startTime,
-        services,
-        clientNotes: appointmentForm.value.clientNotes || null
-      },
-      headers: authHeaders.value
+    const response = await api.painel.createAppointment({
+      clientId: appointmentForm.value.clientId || null,
+      professionalId,
+      date,
+      startTime,
+      services,
+      clientNotes: appointmentForm.value.clientNotes || null
     })
 
-    showNewModal.value = false
-    await fetchAppointments()
+    if (response.success) {
+      showNewModal.value = false
+      await fetchAppointments()
+    } else {
+      formError.value = response.message || 'Erro ao criar agendamento'
+    }
   } catch (error: any) {
-    formError.value = error.data?.message || 'Erro ao criar agendamento'
+    formError.value = error.data?.message || error.message || 'Erro ao criar agendamento'
   } finally {
     saving.value = false
   }
@@ -555,11 +545,7 @@ const saveAppointment = async () => {
 // Update appointment status
 const updateStatus = async (id: string, status: string) => {
   try {
-    await $fetch(`/api/painel/appointments/${id}`, {
-      method: 'PATCH',
-      body: { status },
-      headers: authHeaders.value
-    })
+    await api.painel.updateAppointment(id, { status })
     await fetchAppointments()
   } catch (error) {
     console.error('Erro ao atualizar status:', error)
@@ -601,12 +587,12 @@ const getStatusBadgeClass = (status: string) => {
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
-    'completed': 'Concluído',
+    'completed': 'Concluido',
     'in_progress': 'Atendendo',
     'confirmed': 'Confirmado',
     'pending': 'Pendente',
     'cancelled': 'Cancelado',
-    'no_show': 'Não compareceu'
+    'no_show': 'Nao compareceu'
   }
   return labels[status] || 'Pendente'
 }

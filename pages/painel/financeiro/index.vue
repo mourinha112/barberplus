@@ -297,7 +297,13 @@ definePageMeta({
   layout: 'painel'
 })
 
+import { format, subDays, startOfWeek, startOfMonth, startOfYear } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+
+const api = useApi()
+
 const selectedPeriod = ref('month')
+const loading = ref(true)
 
 const periods = [
   { label: 'Hoje', value: 'today' },
@@ -333,12 +339,88 @@ const hasData = computed(() => transactions.value.length > 0 || totalRevenue.val
 
 const getPaymentIcon = (payment: string) => {
   const icons: Record<string, string> = {
-    'Pix': 'mdi:qrcode',
-    'Cartão': 'lucide:credit-card',
-    'Dinheiro': 'lucide:banknote'
+    'Pix': 'mdi:qrcode', 'pix': 'mdi:qrcode',
+    'Cartão': 'lucide:credit-card', 'credit_card': 'lucide:credit-card', 'debit_card': 'lucide:credit-card',
+    'Dinheiro': 'lucide:banknote', 'cash': 'lucide:banknote'
   }
   return icons[payment] || 'lucide:circle'
 }
+
+const getPaymentLabel = (method: string) => {
+  const labels: Record<string, string> = {
+    pix: 'Pix', cash: 'Dinheiro', credit_card: 'Cartão Crédito', debit_card: 'Cartão Débito'
+  }
+  return labels[method] || method || '-'
+}
+
+const getDateRange = () => {
+  const now = new Date()
+  switch (selectedPeriod.value) {
+    case 'today': return { startDate: format(now, 'yyyy-MM-dd'), endDate: format(now, 'yyyy-MM-dd') }
+    case 'week': return { startDate: format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd'), endDate: format(now, 'yyyy-MM-dd') }
+    case 'month': return { startDate: format(startOfMonth(now), 'yyyy-MM-dd'), endDate: format(now, 'yyyy-MM-dd') }
+    case 'year': return { startDate: format(startOfYear(now), 'yyyy-MM-dd'), endDate: format(now, 'yyyy-MM-dd') }
+    default: return { startDate: format(startOfMonth(now), 'yyyy-MM-dd'), endDate: format(now, 'yyyy-MM-dd') }
+  }
+}
+
+const fetchData = async () => {
+  loading.value = true
+  try {
+    const dateRange = getDateRange()
+
+    const [summaryRes, transRes, commRes] = await Promise.all([
+      api.painel.getFinancialSummary(dateRange).catch(() => ({ success: false })),
+      api.painel.getTransactions(dateRange).catch(() => ({ success: false })),
+      api.painel.getCommissions(dateRange).catch(() => ({ success: false }))
+    ]) as any[]
+
+    if (summaryRes.success && summaryRes.data) {
+      totalRevenue.value = summaryRes.data.totalRevenue || summaryRes.data.total_revenue || 0
+      totalExpenses.value = summaryRes.data.totalExpenses || summaryRes.data.total_expenses || 0
+      totalCommissions.value = summaryRes.data.totalCommissions || summaryRes.data.total_commissions || 0
+
+      if (summaryRes.data.paymentMethods || summaryRes.data.payment_methods) {
+        const pm = summaryRes.data.paymentMethods || summaryRes.data.payment_methods || {}
+        const total = Object.values(pm).reduce((a: number, b: any) => a + (Number(b) || 0), 0) as number
+        paymentMethods.value = paymentMethods.value.map(m => {
+          const key = m.name.toLowerCase().replace(/\s+/g, '_')
+          const amount = pm[key] || pm[m.name] || 0
+          return { ...m, percentage: total > 0 ? Math.round((amount / total) * 100) : 0 }
+        })
+      }
+
+      if (summaryRes.data.chartData || summaryRes.data.chart_data) {
+        chartData.value = summaryRes.data.chartData || summaryRes.data.chart_data || []
+      }
+    }
+
+    if (transRes.success) {
+      transactions.value = (transRes.data || []).slice(0, 20).map((t: any) => ({
+        id: t.id,
+        description: t.description || '',
+        client: t.client?.name || t.client_name || '',
+        category: t.category || '-',
+        date: t.transaction_date ? format(new Date(t.transaction_date), 'dd/MM/yyyy') : '',
+        payment: getPaymentLabel(t.payment_method),
+        type: t.type || 'income',
+        amount: parseFloat(t.amount || 0).toFixed(2)
+      }))
+    }
+
+    if (commRes.success) {
+      totalCommissions.value = totalCommissions.value || (commRes.data || []).reduce((a: number, c: any) => a + (c.commission_amount || 0), 0)
+    }
+  } catch {
+    // Show empty state
+  } finally {
+    loading.value = false
+  }
+}
+
+watch(selectedPeriod, () => { fetchData() })
+
+onMounted(() => { fetchData() })
 
 const exportReport = () => {
   if (!hasData.value) return
@@ -348,10 +430,10 @@ const exportReport = () => {
     `Período: ${periods.find(p => p.value === selectedPeriod.value)?.label || selectedPeriod.value}`,
     '',
     'RESUMO',
-    `Receita Total;R$ ${totalRevenue.value.toLocaleString('pt-BR')}`,
-    `Despesas;R$ ${totalExpenses.value.toLocaleString('pt-BR')}`,
-    `Comissões;R$ ${totalCommissions.value.toLocaleString('pt-BR')}`,
-    `Lucro Líquido;R$ ${netProfit.value.toLocaleString('pt-BR')}`,
+    `Receita Total;R$ ${totalRevenue.value.toFixed(2)}`,
+    `Despesas;R$ ${totalExpenses.value.toFixed(2)}`,
+    `Comissões;R$ ${totalCommissions.value.toFixed(2)}`,
+    `Lucro Líquido;R$ ${netProfit.value.toFixed(2)}`,
     '',
     'TRANSAÇÕES',
     'Descrição;Cliente;Categoria;Data;Pagamento;Tipo;Valor',
@@ -359,13 +441,6 @@ const exportReport = () => {
       `${t.description};${t.client};${t.category};${t.date};${t.payment};${t.type === 'income' ? 'Entrada' : 'Saída'};R$ ${t.amount}`
     )
   ]
-
-  if (expenseCategories.value.length > 0) {
-    lines.push('', 'DESPESAS POR CATEGORIA', 'Categoria;Valor')
-    expenseCategories.value.forEach(e => {
-      lines.push(`${e.name};R$ ${e.amount.toLocaleString('pt-BR')}`)
-    })
-  }
 
   const csvContent = lines.join('\n')
   const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })

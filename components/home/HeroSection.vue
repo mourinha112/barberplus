@@ -26,9 +26,11 @@
             placeholder="Encontre uma barbearia..."
             class="input-premium pl-12 pr-24 py-4"
             @focus="showSearchSuggestions = true"
+          @keyup.enter="handleSearch"
           />
-          <button 
+          <button
             class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-amber-500 text-black font-semibold text-sm hover:bg-amber-400 transition-colors"
+            @click="handleSearch"
           >
             Buscar
           </button>
@@ -126,14 +128,23 @@ const selectSuggestion = (suggestion: string) => {
   emit('search', suggestion)
 }
 
+const handleSearch = () => {
+  if (searchQuery.value.trim()) {
+    emit('search', searchQuery.value.trim())
+    showSearchSuggestions.value = false
+  }
+}
+
 // Close suggestions when clicking outside
 onMounted(() => {
-  document.addEventListener('click', (e) => {
+  const handler = (e: Event) => {
     const target = e.target as HTMLElement
     if (!target.closest('.relative')) {
       showSearchSuggestions.value = false
     }
-  })
+  }
+  document.addEventListener('click', handler)
+  onUnmounted(() => document.removeEventListener('click', handler))
 })
 </script>
 

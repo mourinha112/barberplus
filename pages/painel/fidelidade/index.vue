@@ -39,8 +39,12 @@
           <h3 class="text-lg font-semibold text-white">Configuração do Programa</h3>
           <p class="text-sm text-neutral-500">Defina as regras do cartão fidelidade</p>
         </div>
-        <button class="px-4 py-2 rounded-xl bg-amber-500 text-black font-semibold text-sm hover:bg-amber-400 transition-colors">
-          Salvar alterações
+        <button
+          class="px-4 py-2 rounded-xl bg-amber-500 text-black font-semibold text-sm hover:bg-amber-400 transition-colors"
+          :disabled="saving"
+          @click="saveProgram"
+        >
+          {{ saving ? 'Salvando...' : 'Salvar alterações' }}
         </button>
       </div>
 
@@ -221,9 +225,18 @@
 </template>
 
 <script setup lang="ts">
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+
 definePageMeta({
   layout: 'painel'
 })
+
+const api = useApi()
+const toast = useToast()
+
+const loading = ref(true)
+const saving = ref(false)
 
 const stats = ref({
   activeCards: 0,
@@ -239,8 +252,90 @@ const programSettings = ref({
 })
 
 const clientsNearCompletion = ref<any[]>([])
-
 const recentRedemptions = ref<any[]>([])
+
+const fetchData = async () => {
+  loading.value = true
+  try {
+    const [programRes, cardsRes] = await Promise.all([
+      api.painel.getLoyaltyProgram().catch(() => ({ success: false })),
+      api.painel.getLoyaltyCards().catch(() => ({ success: false }))
+    ]) as any[]
+
+    if (programRes.success && programRes.data) {
+      const p = programRes.data
+      programSettings.value = {
+        cutsRequired: p.stamps_required || p.cutsRequired || 10,
+        reward: p.reward_type || p.reward || 'free_cut',
+        validity: p.validity || 'unlimited'
+      }
+
+      if (programRes.stats) {
+        stats.value = {
+          activeCards: programRes.stats.activeCards || 0,
+          completedCards: programRes.stats.completedCards || 0,
+          freeServicesGiven: programRes.stats.freeServicesGiven || programRes.stats.rewards_claimed || 0,
+          returnRate: programRes.stats.returnRate || 0
+        }
+      }
+    }
+
+    if (cardsRes.success && cardsRes.data) {
+      const cards = cardsRes.data || []
+      const required = programSettings.value.cutsRequired
+
+      // Count stats from cards
+      const active = cards.filter((c: any) => !c.is_completed)
+      const completed = cards.filter((c: any) => c.is_completed)
+      stats.value.activeCards = active.length
+      stats.value.completedCards = completed.length
+      stats.value.freeServicesGiven = completed.reduce((a: number, c: any) => a + (c.rewards_claimed || 0), 0)
+
+      // Near completion (80%+)
+      clientsNearCompletion.value = active
+        .filter((c: any) => (c.stamps_collected || 0) >= required * 0.7)
+        .map((c: any) => ({
+          id: c.id,
+          name: c.client?.name || 'Cliente',
+          avatar: c.client?.avatar_url || '',
+          points: c.stamps_collected || 0,
+          lastVisit: c.updated_at ? format(new Date(c.updated_at), "d 'de' MMM", { locale: ptBR }) : ''
+        }))
+
+      // Recent redemptions
+      recentRedemptions.value = completed.slice(0, 5).map((c: any) => ({
+        id: c.id,
+        name: c.client?.name || 'Cliente',
+        avatar: c.client?.avatar_url || '',
+        date: c.updated_at ? format(new Date(c.updated_at), "d 'de' MMM", { locale: ptBR }) : '',
+        reward: programSettings.value.reward === 'free_cut' ? 'Corte grátis' : 'Recompensa',
+        value: '0'
+      }))
+    }
+  } catch {
+    // Show empty state
+  } finally {
+    loading.value = false
+  }
+}
+
+const saveProgram = async () => {
+  saving.value = true
+  try {
+    await api.painel.saveLoyaltyProgram({
+      stamps_required: programSettings.value.cutsRequired,
+      reward_type: programSettings.value.reward,
+      validity: programSettings.value.validity
+    })
+    toast.add({ title: 'Programa salvo!', icon: 'i-lucide-check', color: 'green' })
+  } catch {
+    toast.add({ title: 'Erro ao salvar', icon: 'i-lucide-alert-circle', color: 'red' })
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(() => { fetchData() })
 
 useSeoMeta({
   title: 'Fidelidade - Painel BarberPlus'

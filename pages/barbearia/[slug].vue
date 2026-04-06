@@ -263,6 +263,7 @@
         :barbershop="barbershop"
         :services="services"
         :professionals="professionals"
+        @booked="showBooking = false"
       />
     </template>
   </div>

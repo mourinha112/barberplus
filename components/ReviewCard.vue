@@ -2,8 +2,8 @@
   <div class="p-4 rounded-2xl bg-neutral-900/50 border border-neutral-800">
     <!-- Header -->
     <div class="flex items-start gap-3 mb-3">
-      <img 
-        :src="review.avatar" 
+      <img
+        :src="review.avatar"
         :alt="review.author"
         class="w-10 h-10 rounded-xl object-cover"
       />
@@ -15,15 +15,15 @@
         <div class="flex items-center gap-2 mt-0.5">
           <!-- Stars -->
           <div class="flex items-center gap-0.5">
-            <Icon 
-              v-for="i in 5" 
+            <Icon
+              v-for="i in 5"
               :key="i"
-              name="lucide:star" 
-              :class="['w-3 h-3', i <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-neutral-700']" 
+              name="lucide:star"
+              :class="['w-3 h-3', i <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-neutral-700']"
             />
           </div>
           <!-- Service Tag -->
-          <span class="text-xs text-neutral-500">• {{ review.service }}</span>
+          <span class="text-xs text-neutral-500">{{ review.service }}</span>
         </div>
       </div>
     </div>
@@ -33,15 +33,22 @@
       {{ review.content }}
     </p>
 
+    <!-- Reply -->
+    <div v-if="review.reply" class="mt-3 p-3 rounded-xl bg-neutral-800/50 border border-neutral-700/50">
+      <p class="text-xs text-amber-500 font-medium mb-1">Resposta da barbearia</p>
+      <p class="text-sm text-neutral-400">{{ review.reply }}</p>
+    </div>
+
     <!-- Actions -->
     <div class="flex items-center gap-4 mt-3 pt-3 border-t border-neutral-800">
-      <button class="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-amber-500 transition-colors">
+      <button
+        class="flex items-center gap-1.5 text-xs transition-colors"
+        :class="isHelpful ? 'text-amber-500' : 'text-neutral-500 hover:text-amber-500'"
+        @click="toggleHelpful"
+      >
         <Icon name="lucide:thumbs-up" class="w-4 h-4" />
-        Útil
-      </button>
-      <button class="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-amber-500 transition-colors">
-        <Icon name="lucide:message-circle" class="w-4 h-4" />
-        Responder
+        {{ isHelpful ? 'Útil' : 'Útil' }}
+        <span v-if="helpfulCount > 0">({{ helpfulCount }})</span>
       </button>
     </div>
   </div>
@@ -56,10 +63,19 @@ interface Review {
   date: string
   content: string
   service: string
+  reply?: string
+  helpful_count?: number
 }
 
-defineProps<{
+const props = defineProps<{
   review: Review
 }>()
-</script>
 
+const isHelpful = ref(false)
+const helpfulCount = ref(props.review.helpful_count || 0)
+
+const toggleHelpful = () => {
+  isHelpful.value = !isHelpful.value
+  helpfulCount.value += isHelpful.value ? 1 : -1
+}
+</script>

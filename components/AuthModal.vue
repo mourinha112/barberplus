@@ -92,7 +92,7 @@
             <input type="checkbox" v-model="rememberMe" class="w-4 h-4 rounded border-neutral-600 bg-neutral-800 text-amber-500 focus:ring-amber-500" />
             <span class="text-sm text-neutral-400">Lembrar de mim</span>
           </label>
-          <button type="button" class="text-sm text-amber-500 hover:text-amber-400 transition-colors">
+          <button type="button" class="text-sm text-amber-500 hover:text-amber-400 transition-colors" @click="handleForgotPassword">
             Esqueci a senha
           </button>
         </div>
@@ -296,6 +296,14 @@ watch(isLogin, () => {
   errorMessage.value = ''
   successMessage.value = ''
 })
+
+const handleForgotPassword = () => {
+  if (!loginForm.value.email) {
+    errorMessage.value = 'Digite seu email para recuperar a senha'
+    return
+  }
+  successMessage.value = `Se o email ${loginForm.value.email} existir, enviaremos as instruções de recuperação.`
+}
 
 const handleLogin = async () => {
   errorMessage.value = ''

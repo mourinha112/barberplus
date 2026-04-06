@@ -30,7 +30,7 @@
               <a href="#depoimentos" class="text-sm text-neutral-400 hover:text-white transition-colors">Depoimentos</a>
               <a href="#precos" class="text-sm text-neutral-400 hover:text-white transition-colors">Preços</a>
             </div>
-            <button class="btn-premium px-6 py-2.5 text-sm">
+            <button class="btn-premium px-6 py-2.5 text-sm" @click="showAuthModal = true">
               <span>Cadastrar Barbearia</span>
             </button>
           </div>
@@ -59,16 +59,16 @@
             </p>
 
             <div class="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start mb-12">
-              <button class="w-full sm:w-auto btn-premium px-8 py-4 text-lg glow-gold group">
+              <button class="w-full sm:w-auto btn-premium px-8 py-4 text-lg glow-gold group" @click="showAuthModal = true">
                 <span class="flex items-center justify-center gap-2">
                   Cadastrar Grátis
                   <Icon name="lucide:arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </span>
               </button>
-              <button class="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-neutral-700 text-neutral-300 hover:border-amber-500/50 hover:text-white transition-all">
+              <NuxtLink to="/" class="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-neutral-700 text-neutral-300 hover:border-amber-500/50 hover:text-white transition-all">
                 <Icon name="lucide:play-circle" class="w-5 h-5" />
                 Ver demonstração
-              </button>
+              </NuxtLink>
             </div>
 
             <!-- Trust Badges -->
@@ -870,7 +870,7 @@
             Junte-se a mais de 500 barbearias que já estão crescendo com o BarberPlus. 
             Cadastro gratuito, sem cartão de crédito.
           </p>
-          <button class="btn-premium px-12 py-4 text-lg glow-gold">
+          <button class="btn-premium px-12 py-4 text-lg glow-gold" @click="showAuthModal = true">
             <span class="flex items-center gap-2">
               Cadastrar minha barbearia
               <Icon name="lucide:arrow-right" class="w-5 h-5" />
@@ -914,6 +914,8 @@
         </div>
       </div>
     </footer>
+    <!-- Auth Modal -->
+    <AuthModal v-model="showAuthModal" @success="onAuthSuccess" />
   </div>
 </template>
 
@@ -1027,6 +1029,18 @@ const enterpriseFeatures = [
   'Campanhas exclusivas',
   'Treinamento da equipe'
 ]
+
+const showAuthModal = ref(false)
+
+const onAuthSuccess = () => {
+  showAuthModal.value = false
+  const { isManager } = useAuth()
+  if (isManager.value) {
+    navigateTo('/painel')
+  } else {
+    navigateTo('/')
+  }
+}
 
 useSeoMeta({
   title: 'BarberPlus para Barbearias - Aumente seus clientes em 300%',
