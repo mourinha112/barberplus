@@ -47,6 +47,9 @@ export default defineEventHandler(async (event) => {
     if (body.queueEnabled !== undefined) updateData.queue_enabled = body.queueEnabled
     if (body.queueAverageTime !== undefined) updateData.queue_average_time = body.queueAverageTime
 
+    // Status
+    if (body.isActive !== undefined) updateData.is_active = body.isActive
+
     const { data: barbershop, error } = await supabaseAdmin
       .from('barbershops')
       .update(updateData)

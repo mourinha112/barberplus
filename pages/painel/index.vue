@@ -1,5 +1,32 @@
 <template>
   <div class="space-y-6">
+    <!-- Status da Barbearia -->
+    <div class="flex items-center justify-between p-5 rounded-2xl border" :class="shopOpen ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-red-500/5 border-red-500/30'">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="shopOpen ? 'bg-emerald-500/20' : 'bg-red-500/20'">
+          <Icon :name="shopOpen ? 'lucide:door-open' : 'lucide:door-closed'" class="w-6 h-6" :class="shopOpen ? 'text-emerald-500' : 'text-red-500'" />
+        </div>
+        <div>
+          <p class="text-lg font-semibold text-white">
+            Barbearia {{ shopOpen ? 'Aberta' : 'Fechada' }}
+          </p>
+          <p class="text-sm text-neutral-400">
+            {{ shopOpen ? 'Clientes podem ver e agendar horários' : 'Sua barbearia não está visível para clientes' }}
+          </p>
+        </div>
+      </div>
+      <button
+        class="px-6 py-3 rounded-xl font-semibold transition-colors flex items-center gap-2"
+        :class="shopOpen ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-emerald-500 text-black hover:bg-emerald-400'"
+        :disabled="togglingShop"
+        @click="toggleShopStatus"
+      >
+        <Icon v-if="togglingShop" name="lucide:loader-2" class="w-4 h-4 animate-spin" />
+        <Icon v-else :name="shopOpen ? 'lucide:power-off' : 'lucide:power'" class="w-4 h-4" />
+        {{ togglingShop ? '' : (shopOpen ? 'Fechar' : 'Abrir') }}
+      </button>
+    </div>
+
     <!-- Quick Stats -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- Faturamento Hoje -->
@@ -187,6 +214,39 @@ definePageMeta({
 
 const currentBarbershop = inject<Ref<any>>('currentBarbershop')
 const { authHeaders } = useAuth()
+const toast = useToast()
+
+// Status aberto/fechado
+const shopOpen = ref(true)
+const togglingShop = ref(false)
+
+const toggleShopStatus = async () => {
+  if (!currentBarbershop?.value?.id) return
+
+  togglingShop.value = true
+  try {
+    const newStatus = !shopOpen.value
+    await $fetch(`/api/painel/barbershop/${currentBarbershop.value.id}`, {
+      method: 'PATCH',
+      headers: authHeaders.value,
+      body: {
+        barbershopId: currentBarbershop.value.id,
+        isActive: newStatus
+      }
+    })
+    shopOpen.value = newStatus
+    toast.add({
+      title: newStatus ? 'Barbearia aberta!' : 'Barbearia fechada',
+      description: newStatus ? 'Clientes podem ver e agendar' : 'Sua barbearia não está visível',
+      icon: newStatus ? 'i-lucide-door-open' : 'i-lucide-door-closed',
+      color: newStatus ? 'green' : 'red'
+    })
+  } catch {
+    toast.add({ title: 'Erro ao alterar status', icon: 'i-lucide-alert-circle', color: 'red' })
+  } finally {
+    togglingShop.value = false
+  }
+}
 
 // Stats - dados reais (zerados por padrão)
 const stats = ref({
@@ -203,8 +263,8 @@ const upcomingAppointments = ref<any[]>([])
 // Buscar dados quando tiver barbearia selecionada
 watch(currentBarbershop, async (barbershop) => {
   if (barbershop?.id) {
-    await fetchStats()
-    await fetchUpcomingAppointments()
+    shopOpen.value = barbershop.is_active !== false
+    await Promise.all([fetchStats(), fetchUpcomingAppointments()])
   }
 }, { immediate: true })
 
